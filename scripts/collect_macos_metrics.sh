@@ -1,12 +1,16 @@
 #!/bin/bash
 
 # Initialize health variables
-cpu_temp="N/A"
-gpu_temp="N/A"
-network_health="N/A"
 memory_health="N/A"
+cpu_temp="N/A"
 cpu_health="N/A"
+gpu_power="N/A"
+pressure_reading="N/A"
+gpu_health="Unknown"
+gpu_frequency="N/A"
+gpu_residency="N/A"
 disk_health="N/A"
+network_health="N/A"
 
 collect_memory() {
     echo "Collecting memory usage on macOS..."
@@ -105,67 +109,94 @@ collect_cpu_details() {
    sudo powermetrics -s cpu_power -n 1 | grep 'E-Cluster HW active frequency' || echo "Could not retrieve CPU frequency."
 }
 
-# Function to collect GPU metrics
 collect_gpu() {
-    echo "Collecting GPU utilization on macOS..."
+    echo "=============================="
+    echo "   Collecting GPU Metrics     "
+    echo "=============================="
     
-    gpu_info=$(system_profiler SPDisplaysDataType)
-    
-    if [[ "$gpu_info" == *"Apple"* ]]; then
-        gpu_usage=$(powermetrics -gpu | grep "GPU" | awk '{print $3}' | sed 's/%//')
-        gpu_temp=$(powermetrics -thermal | grep "GPU die temperature" | awk '{print $5}' | sed 's/°C//')
+    # Run powermetrics command to collect GPU data
+    gpu_metrics=$(sudo powermetrics --samplers gpu_power --show-process-gpu -n 1 -i 1000)
 
-        # GPU Health Check for Apple GPU
-        if (( gpu_usage > 80 || gpu_temp > 85 )); then
-            gpu_health="Critical"
-        elif (( gpu_usage > 60 || gpu_temp > 75 )); then
-            gpu_health="Warning"
-        else
-            gpu_health="Good"
-        fi
-        
-        echo "Detected Apple GPU."
-        
-    elif [[ "$gpu_info" == *"NVIDIA"* ]]; then
-        gpu_usage=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader)
-        gpu_temp=$(nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader)
+    # Print raw metrics for debugging (optional)
+    # echo "Raw GPU Metrics:"
+    # echo "$gpu_metrics" | sed 's/^/    /'  # Indent raw metrics for better visibility
 
-        # Check NVIDIA health based on usage and temperature 
-        if [[ "$gpu_usage" -gt 80 || "$gpu_temp" -gt 85 ]]; then
-            gpu_health="Critical"
-        elif [[ "$gpu_usage" -gt 60 || "$gpu_temp" -gt 75 ]]; then
-            gpu_health="Warning"
-        else
-            gpu_health="Good"
+    # Initialize variables
+    gpu_frequency="N/A"
+    gpu_residency="N/A"
+    gpu_power="N/A"
+    gpu_health="Unknown"
+
+    # Parse metrics from output
+    echo "=============================="
+    echo "         Parsed Metrics       "
+    echo "=============================="
+
+    # Extract relevant data using grep and awk
+    while IFS= read -r line; do
+        if [[ $line == *"GPU HW active frequency:"* ]]; then
+            gpu_frequency=$(echo "$line" | awk '{print $5}')
+            echo "GPU Active Frequency: $gpu_frequency MHz"
+        elif [[ $line == *"GPU HW active residency:"* ]]; then
+            gpu_residency=$(echo "$line" | awk '{print $5}' | sed 's/%//')  # Remove % sign for numeric comparison
+            echo "GPU Active Residency: $gpu_residency%"
+        elif [[ $line == *"GPU Power:"* ]]; then
+            gpu_power=$(echo "$line" | awk '{print $3}')
+            echo "GPU Power Consumption: $gpu_power mW"
         fi
-        
-        echo "Detected NVIDIA GPU."
-        
-    elif [[ "$gpu_info" == *"AMD"* ]]; then
-        gpu_usage="N/A"
-        gpu_temp="N/A"
-        gpu_health="Good" # Placeholder
-        
-        echo "Detected AMD GPU."
-        
+    done <<< "$gpu_metrics"
+
+    # Calculate GPU load based on residency
+    gpu_load="$gpu_residency"  # Use residency as a proxy for load
+
+    # Check if GPU power was found and determine health based on residency and power
+    if [[ "$gpu_power" == "0" || "$gpu_power" == "N/A" ]]; then
+        gpu_health="Idle (No activity detected)"
+        gpu_residency="0.00"
+        gpu_load="0.00"
     else
-        echo "No supported GPU detected."
-        return
+        if [[ "$gpu_residency" == "N/A" || "$gpu_residency" == "0.00" ]]; then
+            gpu_health="Unknown (No activity)"
+        elif (( $(echo "$gpu_residency > 80" | bc -l) )); then
+            gpu_health="Critical"
+        elif (( $(echo "$gpu_residency > 60" | bc -l) )); then
+            gpu_health="Warning"
+        else
+            gpu_health="Good"
+        fi
     fi
+    #  Final formatted output for health status
+    echo "=============================="
+    echo "         GPU Health           "
+    echo "=============================="
+    echo "GPU Health: ${gpu_health:-Unknown}"
+    
+    # Output the load reading as pressure reading if available
+    echo "GPU Load (Pressure): ${gpu_load:-N/A}%"
 
-    echo "GPU Utilization: ${gpu_usage}%"
-    echo "GPU Temperature: ${gpu_temp}°C"
-    echo "GPU Health: ${gpu_health}"
+    echo "=============================="
 }
 
-# Function to collect disk metrics and SMART status
 collect_disk() {
     echo "Collecting disk usage and SMART status on macOS..."
     
+    # Get disk usage percentage
     disk_usage=$(df -h / | tail -1 | awk '{print $5}' | tr -d '%')
     
+    # Get SMART status
     smart_status=$(diskutil info disk0 | grep "SMART Status" | awk '{print $3}')
     
+    # Initialize variables for additional SMART attributes
+    smart_attributes=""
+
+    # Try to get additional SMART attributes using smartctl
+    if command -v smartctl &> /dev/null; then
+        smart_attributes=$(sudo smartctl -A /dev/disk0 2>/dev/null)
+    else
+        echo "smartctl command not found. Please install smartmontools."
+        return 1
+    fi
+
     echo "Disk Usage: ${disk_usage}%"
     echo "SMART Status: ${smart_status}"
 
@@ -180,72 +211,105 @@ collect_disk() {
         disk_health="Good"
     fi
 
+    # Display all SMART attributes for debugging purposes
+    echo "All SMART Attributes:"
+    echo "$smart_attributes"
+
     echo "Disk Health: ${disk_health}"
 }
 
-# # Function to check network health and statistics with multiple pings for accuracy.
 # check_network() {
 #     echo "Collecting network interface statistics on macOS..."
 
-# 	# Get network statistics using netstat and check interface status using ifconfig.
-# 	net_stats=$(netstat -i)
-# 	echo "$net_stats"
+#     # Get network statistics using netstat and check interface status using ifconfig.
+#     net_stats=$(netstat -i)
+#     echo "$net_stats"
 
-# 	echo "Checking network interface statuses..."
-# 	ifconfig_output=$(ifconfig)
-# 	echo "$ifconfig_output"
+#     echo "Checking network interface statuses..."
+#     ifconfig_output=$(ifconfig)
+#     echo "$ifconfig_output"
 
-# 	# Check for packet loss by pinging a known reliable address multiple times.
-# 	echo "Pinging Google DNS to check connectivity..."
-# 	ping_count=10 # Number of pings to send.
-# 	ping_output=$(ping -c $ping_count 8.8.8.8) 
-	
-# 	# Extract packet loss percentage using regex with grep.
-# 	packet_loss=$(echo "$ping_output" | grep -oP '\d+(?=% packet loss)' || echo '100') # Default to '100' if no output.
+#     # Check for packet loss by pinging a known reliable address multiple times.
+#     echo "Pinging Google DNS to check connectivity..."
+#     ping_count=10 # Number of pings to send.
+#     ping_output=$(ping -c $ping_count 8.8.8.8 2>&1)  # Capture both output and errors
 
-# 	# Calculate average latency from ping results.
-# 	latency_avg=$(echo "$ping_output" | grep 'rtt' | awk -F'/' '{print $2}') 
+#     # Check if ping command was successful
+#     if [[ $? -ne 0 ]]; then
+#         echo "Ping command failed. Check your network connection."
+#         return 1
+#     fi
 
-# 	if [ "$packet_loss" -eq 0 ]; then
-# 		network_health="Good (Avg Latency: ${latency_avg} ms)"
-# 	else
-# 		network_health="Poor - ${packet_loss}% packet loss (Avg Latency: ${latency_avg} ms)"
-# 	fi
+#     # Extract packet loss percentage using grep without -P
+#     packet_loss=$(echo "$ping_output" | grep -o '[0-9]\+% packet loss' | awk '{print $1}' || echo '100') # Default to '100' if no output.
 
-# 	echo "Network Health: ${network_health}"
+#     # Calculate average latency from ping results.
+#     latency_avg=$(echo "$ping_output" | grep 'rtt' | awk -F'/' '{print $2}') 
+
+#     if [ "$packet_loss" -eq 0 ]; then
+#         network_health="Good (Avg Latency: ${latency_avg} ms)"
+#     else
+#         network_health="Poor - ${packet_loss}% packet loss (Avg Latency: ${latency_avg} ms)"
+#     fi
+
+#     echo "Network Health: ${network_health}"
+
+#     # Run traceroute for further diagnostics
+#     echo "Running traceroute to diagnose network path..."
+#     traceroute_output=$(traceroute 8.8.8.8)
+#     echo "$traceroute_output"
 # }
 
-# # Function to collect system load metrics with adjustable thresholds based on CPU cores.
-# collect_load() {
-# 	echo "Collecting system load metrics on macOS..."
-	
-# 	load_average=$(uptime | awk -F'load averages:' '{ print $2 }' | cut -d',' -f1)
-# 	num_cores=$(sysctl -n hw.physicalcpu)
+collect_load() {
+    echo "Collecting system load metrics on macOS..."
 
-# 	echo "System Load Average: ${load_average}"
+    # Get the load averages using uptime
+    load_avg=$(uptime | awk -F'load averages:' '{ print $2 }' | tr -d ',')
 
-# 	# Health Check for Load Average based on number of CPU cores.
-# 	if (( $(echo "$load_average > $num_cores * 2" | bc -l) )); then 
-# 		load_health="Critical"
-# 	elif (( $(echo "$load_average > $num_cores * 1.5" | bc -l) )); then 
-# 		load_health="Warning"
-# 	else 
-# 		load_health="Good"
-# 	fi
+    # Debugging output to see raw load average
+    echo "Raw Load Avg Output: $load_avg"
 
-# 	echo "Load Health: ${load_health}"
-# }
+    # Extract the individual load averages
+    one_min=$(echo "$load_avg" | awk '{print $1}')
+    five_min=$(echo "$load_avg" | awk '{print $2}')
+    fifteen_min=$(echo "$load_avg" | awk '{print $3}')
+
+    # Check if the values are empty or malformed
+    if [[ -z "$one_min" || -z "$five_min" || -z "$fifteen_min" ]]; then
+        echo "Error: Unable to parse load averages properly."
+        return 1
+    fi
+
+    # Format the output for clarity
+    echo "System Load Average: 1 Min: $one_min, 5 Min: $five_min, 15 Min: $fifteen_min"
+
+    # Get the number of physical CPU cores
+    num_cores=$(sysctl -n hw.physicalcpu)
+
+    # Debugging output to verify number of cores
+    echo "Number of CPU cores: $num_cores"
+
+    # Analyze the load averages for health check
+    load_health="Good"
+    if (( $(echo "$one_min > $num_cores" | bc -l) )); then
+        load_health="Warning"
+    fi
+    if (( $(echo "$five_min > $num_cores" | bc -l) )); then
+        load_health="Critical"
+    fi
+
+    echo "Load Health: $load_health"
+}
 
 # Main <3
 collect_metrics() {
-	# collect_memory || { echo "Memory collection failed."; exit 1; }
-	# collect_cpu || { echo "CPU collection failed."; exit 1; }
-	# collect_cpu_details || { echo "CPU details collection failed."; exit 1; }
-
+	collect_memory || { echo "Memory collection failed."; exit 1; }
+	collect_cpu || { echo "CPU collection failed."; exit 1; }
+	collect_cpu_details || { echo "CPU details collection failed."; exit 1; }
 	collect_gpu || { echo "GPU collection failed."; exit 1; }
 	collect_disk || { echo "Disk collection failed."; exit 1; }
 	# check_network || { echo "Network check failed."; exit 1; }
-	# collect_load || { echo "Load collection failed."; exit 1; }
+	collect_load || { echo "Load collection failed."; exit 1; }
 }
 
 # Run the metrics collection
