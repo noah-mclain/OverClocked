@@ -1,12 +1,18 @@
 {
   "cSpell.words": [
     "databasename",
+    "figsize",
     "matplotlib",
+    "mpstat",
     "mysqlconnector",
     "pymysql",
+    "skyblue",
     "sqlalchemy",
+    "xlabel",
+    "xticks",
+    "ylabel",
     "zenity",
     "zentiy"
   ],
-  "workbench.colorTheme": "Bearded Theme Aquarelle Lilac"
+  "workbench.colorTheme": "agenomicsphd-code"
 }
