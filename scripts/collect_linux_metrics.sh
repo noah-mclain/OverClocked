@@ -155,7 +155,6 @@ ipv6=$(get_ipv6_address)
 echo "Startup time: $boot_time"
 echo "IPV4 Address: $ipv4"
 echo "IPV6 Address: $ipv6"
-while true; do
     ram_total=$(get_total_ram)
     ram_percentage=$(get_free_ram_percentage)
     utilized_ram=$(get_used_ram_percentage)
@@ -206,7 +205,7 @@ while true; do
             exit 1
             ;;
     esac
-    echo "GPU Utilization: $gpu_utilization"
-    echo "GPU Temperature: $gpu_temperature"
+    #echo "GPU Utilization: $gpu_utilization"
+    #echo "GPU Temperature: $gpu_temperature"
     sleep 1
-done
+
