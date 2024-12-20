@@ -359,7 +359,4 @@ collect_metrics() {
 }
 
 # Run the metrics collection
-running=True
-while running=True; do
-    collect_metrics
-done
+collect_metrics

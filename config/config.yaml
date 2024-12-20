@@ -1,0 +1,21 @@
+database:
+  host: "db"  # Hostname for the MySQL database service defined in Docker Compose
+  user: "user"  # MySQL username
+  password: "userpassword"  # MySQL password
+  name: "metrics_db"  # Name of the database to connect to
+
+metrics:
+  log_interval: 300  # Interval to log metrics in seconds
+  output_format: "csv"  # Options: csv or database
+
+gui:
+  port: 8080  # Port on which the GUI will run
+  theme: "dark"  # Theme for the GUI (light/dark)
+
+logging:
+  level: "INFO"  # Logging level (DEBUG, INFO, WARNING, ERROR)
+  log_file: "/app/logs/app.log"  # Path to the log file
+
+# Optional settings for metrics collection
+metrics_collection:
+  enabled: true  # Enable or disable metrics collection

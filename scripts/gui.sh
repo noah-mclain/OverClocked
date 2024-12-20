@@ -1,104 +1,141 @@
 #!/bin/bash
 
+request_admin_privileges() {
+    if command -v fprintd-verify > /dev/null; then
+        if zenity --question --text="Biometric authentication available. Do you want to use it?" --ok-label="Use Biometrics" --cancel-label="Enter Password" --width=400 --height=200; then
+            if fprintd-verify; then
+                return 0  # Success
+            else
+                zenity --error --text="Biometric authentication failed." --width=400 --height=200
+                return 1  # Failure
+            fi
+        fi
+    fi
+
+    while true; do
+        PASSWORD=$(zenity --entry --title="Sudo Password" \
+                          --text="Enter your sudo password:" \
+                          --hide-text \
+                          --width=400 --height=200)
+
+        if [[ $? -ne 0 ]]; then
+            zenity --error --text="Password entry canceled." --width=400 --height=200
+            exit 1
+        fi
+        
+        if [[ -z "$PASSWORD" ]]; then
+            zenity --error --text="You must enter your sudo password to proceed." --width=400 --height=200
+            continue  
+        fi
+        
+        echo "$PASSWORD" | sudo -S -k true > /dev/null 2>&1
+        
+        if [[ $? -ne 0 ]]; then
+            zenity --error --text="Invalid password. Please try again." --width=400 --height=200
+            continue  
+        fi
+        
+        break  
+    done
+    
+    export SUDO_PASSWORD="$PASSWORD"
+    return 0 
+}
+
+collect_metrics() {
+    trap 'exit 0' SIGINT SIGTERM  # Ensure graceful termination on signals
+    while $collecting_metrics; do
+        echo "$SUDO_PASSWORD" | sudo -S ./collect_metrics.sh || {
+            zenity --error --text="Error: Failed to collect metrics." --width=400 --height=200
+            exit 1
+        }
+        sleep 1  # Add delay between collections
+    done
+}
+
+start_collecting_metrics() {
+    collecting_metrics=true
+    collect_metrics &
+    METRICS_PID=$!
+}
+
+stop_collecting_metrics() {
+    if [[ $METRICS_PID -ne 0 ]]; then
+        collecting_metrics=false
+        kill $METRICS_PID 2>/dev/null
+        wait $METRICS_PID 2>/dev/null || zenity --info --text="Metrics collection stopped successfully." --width=400 --height=200
+        METRICS_PID=0
+    fi
+}
+
+# Trap SIGINT and SIGTERM at the beginning
+trap 'stop_collecting_metrics; exit' SIGINT SIGTERM
+
+# Main logic
+if ! request_admin_privileges; then
+    zenity --error --text="Failed to obtain admin privileges. Exiting."
+    exit 1
+fi
+
+start_collecting_metrics
+
 INPUT_FILE="system_metrics.txt"
 MARKDOWN_REPORT="system_report.md"
 HTML_REPORT="systems_report.html"
 
-# Calls to collect the system metrics from the function in collect_metrics.sh
-collect_metrics() {
-    ./collect_metrics.sh
-
-    if [[ $? -eq 0 ]]; then
-        zenity -- info --texts="System metrics collected successfully!"
-    else
-        zenity --error --text="Error: Failed to collect system metrics"
-    fi
-}
-
-# Calls the function in gen_reports.sh to generate the reports
 generate_reports() {
-    # Check if the input file exists
     if [[ ! -f $INPUT_FILE ]]; then
         zenity --error --text="Error: Input file '$INPUT_FILE' not found! Please collect metrics first."
         return
     fi
 
-    ./gen_reports.sh
-
-    zenity --info --text="Reports generated:\n- Markdown Report: ${MARKDOWN_REPORT}\n- HTML Report: ${HTML_REPORT}"
-
-    view_reports_buttons
-}
-
-# Display the buttons for opening te reports
-view_reports_buttons() {
-    RESPONSE=$(zenity --question --text="Do you want to view the reports?" --ok-label="Yoi" --cancel-label="Noi")
-
-    if [[ $? -eq 0 ]]; then
-        REPORT_TYPE=$(zenity --list \
-                            --title="View Reports" \
-                            --column="Select Report" \
-                            "View Markdown Report" \
-                            "View HTML Report"
-                    )
-
-        case $REPORT_TYPE in
-            "View Markdown Report")
-                zenity --info --text="Opening Markdown report in a text viewer..." 
-                xdg-open "$MARKDOWN_REPORT" &  # Open in default text viewer
-                ;;
-            "View HTML Report")
-                zenity --info --text="Opening HTML report in browser..." 
-                xdg-open "$HTML_REPORT" &  # Open in default web browser
-                ;;
-        esac
+    if ./gen_reports.sh; then
+        zenity --info --text="Reports generated:\n- Markdown Report: ${MARKDOWN_REPORT}\n- HTML Report: ${HTML_REPORT}"
+    else
+        zenity --error --text="Error: Failed to generate reports."
     fi
 }
 
-display_reports() {
-    if [[ ! -f $MARKDOWN_REPORT || ! -f $HTML_REPORT ]]; then
-        zenity --error --text="Error: Reports not found! Please generate the reports first!"
-        return
-    fi
-
-    REPORT=$(zenity --list \
-                    --title="Select Report" \
-                    --column="Reports" \
-                    "${MARKDOWN_REPORT}" \
-                    "${HTML_REPORT}"
-            )
-
-    if [[ $? -eq 0 ]]; then
-        zenity --text-info --filename="$REPORT" --title="Report Viewer"
-    fi
+show_metric_data() {
+    local metric_type=$1
+    case $metric_type in
+        "Overall Metrics") zenity --info --title="$metric_type" --text="$(cat overall_metrics.txt)" ;;
+        "CPU Metrics") zenity --info --title="$metric_type" --text="$(cat cpu_metrics.txt)" ;;
+        "GPU Metrics") zenity --info --title="$metric_type" --text="$(cat gpu_metrics.txt)" ;;
+        "Memory/RAM Metrics") zenity --info --title="$metric_type" --text="$(cat memory_metrics.txt)" ;;
+        "Network Metrics") zenity --info --title="$metric_type" --text="$(cat network_metrics.txt)" ;;
+        "Load Metrics") zenity --info --title="$metric_type" --text="$(cat load_metrics.txt)" ;;
+    esac
 }
 
-# Main <3
 while true; do
     ACTION=$(zenity --list \
-                    --title="System Monitoring Took" \
+                    --title="System Monitoring Tool" \
                     --column="Actions" \
-                    "Collect Metrics" \
                     "Generate Reports" \
-                    "Display Reports" \
-                    "Exit"
-            )
+                    "View Overall Metrics" \
+                    "View CPU Metrics" \
+                    "View GPU Metrics" \
+                    "View Memory/RAM Metrics" \
+                    "View Network Metrics" \
+                    "View Load Metrics" \
+                    "Exit" \
+                    --width=500 --height=500)
 
     case $? in
-    0)
-        case $ACTION in
-            "Collected Metrics")
-                collect_metrics ;;
-            "Generated Reports")
-                generate_reports ;;
-            "Display Reports")
-                display_reports ;;
-            "Exit")
-                exit 0 ;;
-        esac ;;
-    1)
-        exit 0 ;;
-    255)
-        exit 0 ;;
+        0)
+            case $ACTION in
+                "Generate Reports") generate_reports ;;
+                "View Overall Metrics") show_metric_data "Overall Metrics" ;;
+                "View CPU Metrics") show_metric_data "CPU Metrics" ;;
+                "View GPU Metrics") show_metric_data "GPU Metrics" ;;
+                "View Memory/RAM Metrics") show_metric_data "Memory/RAM Metrics" ;;
+                "View Network Metrics") show_metric_data "Network Metrics" ;;
+                "View Load Metrics") show_metric_data "Load Metrics" ;;
+                "Exit") stop_collecting_metrics; break ;;
+            esac ;;
+        *) stop_collecting_metrics; break ;;
     esac
 done
+
+exit 0
