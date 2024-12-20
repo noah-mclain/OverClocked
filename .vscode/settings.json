@@ -24,6 +24,7 @@
     "smartmontools",
     "sqlalchemy",
     "traceroute",
+    "utun",
     "venv",
     "xlabel",
     "xticks",
