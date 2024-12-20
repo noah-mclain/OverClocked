@@ -218,47 +218,58 @@ collect_disk() {
     echo "Disk Health: ${disk_health}"
 }
 
-# check_network() {
-#     echo "Collecting network interface statistics on macOS..."
+check_network() {
+    echo "Collecting network interface statistics on macOS..."
 
-#     # Get network statistics using netstat and check interface status using ifconfig.
-#     net_stats=$(netstat -i)
-#     echo "$net_stats"
+    # Get network statistics using netstat and check interface status using ifconfig.
+    net_stats=$(netstat -i)
+    echo "Network Statistics:"
+    echo "$net_stats" | awk 'NR>1 && $1 != "lo0"'  # Exclude loopback interface
+    echo
 
-#     echo "Checking network interface statuses..."
-#     ifconfig_output=$(ifconfig)
-#     echo "$ifconfig_output"
+    echo "Checking network interface statuses..."
+    ifconfig_output=$(ifconfig)
+    echo "$ifconfig_output"
 
-#     # Check for packet loss by pinging a known reliable address multiple times.
-#     echo "Pinging Google DNS to check connectivity..."
-#     ping_count=10 # Number of pings to send.
-#     ping_output=$(ping -c $ping_count 8.8.8.8 2>&1)  # Capture both output and errors
+    # Check for packet loss by pinging a known reliable address multiple times.
+    echo "Pinging Google DNS to check connectivity..."
+    ping_count=10 # Number of pings to send.
+    ping_output=$(ping -c $ping_count 8.8.8.8 2>&1)  # Capture both output and errors
 
-#     # Check if ping command was successful
-#     if [[ $? -ne 0 ]]; then
-#         echo "Ping command failed. Check your network connection."
-#         return 1
-#     fi
+    # Check if ping command was successful
+    if [[ $? -ne 0 ]]; then
+        echo "Ping command failed. Check your network connection."
+        return 1
+    fi
 
-#     # Extract packet loss percentage using grep without -P
-#     packet_loss=$(echo "$ping_output" | grep -o '[0-9]\+% packet loss' | awk '{print $1}' || echo '100') # Default to '100' if no output.
+    # Extract packet loss percentage and remove the '%' sign.
+    packet_loss=$(echo "$ping_output" | grep -o '[0-9]\+% packet loss' | awk '{print $1}' | tr -d '%')
 
-#     # Calculate average latency from ping results.
-#     latency_avg=$(echo "$ping_output" | grep 'rtt' | awk -F'/' '{print $2}') 
+    # Calculate average latency from ping results.
+    latency_avg=$(echo "$ping_output" | awk -F'/' '/rtt/ {print $2}')
 
-#     if [ "$packet_loss" -eq 0 ]; then
-#         network_health="Good (Avg Latency: ${latency_avg} ms)"
-#     else
-#         network_health="Poor - ${packet_loss}% packet loss (Avg Latency: ${latency_avg} ms)"
-#     fi
+    # Check network health based on packet loss and latency.
+    if [ "$packet_loss" -eq 0 ]; then
+        network_health="Good (Avg Latency: ${latency_avg} ms)"
+    else
+        network_health="Poor - ${packet_loss}% packet loss (Avg Latency: ${latency_avg:-N/A} ms)"
+    fi
 
-#     echo "Network Health: ${network_health}"
+    echo "Network Health: ${network_health}"
 
-#     # Run traceroute for further diagnostics
-#     echo "Running traceroute to diagnose network path..."
-#     traceroute_output=$(traceroute 8.8.8.8)
-#     echo "$traceroute_output"
-# }
+    # Run traceroute for further diagnostics.
+    read -p "Do you want to run a traceroute (y/n)? " choice
+    if [[ $choice == "y" || $choice == "Y" ]]; then
+        traceroute_output=$(timeout 30 traceroute -m 15 8.8.8.8 2>&1)
+        if [[ $? -ne 0 ]]; then
+            echo "Traceroute command failed."
+        else
+            echo "$traceroute_output"
+        fi
+    else
+        echo "Skipping traceroute."
+    fi
+}
 
 collect_load() {
     echo "Collecting system load metrics on macOS..."
@@ -303,13 +314,13 @@ collect_load() {
 
 # Main <3
 collect_metrics() {
-	collect_memory || { echo "Memory collection failed."; exit 1; }
-	collect_cpu || { echo "CPU collection failed."; exit 1; }
-	collect_cpu_details || { echo "CPU details collection failed."; exit 1; }
-	collect_gpu || { echo "GPU collection failed."; exit 1; }
-	collect_disk || { echo "Disk collection failed."; exit 1; }
-	# check_network || { echo "Network check failed."; exit 1; }
-	collect_load || { echo "Load collection failed."; exit 1; }
+	# collect_memory || { echo "Memory collection failed."; exit 1; }
+	# collect_cpu || { echo "CPU collection failed."; exit 1; }
+	# collect_cpu_details || { echo "CPU details collection failed."; exit 1; }
+	# collect_gpu || { echo "GPU collection failed."; exit 1; }
+	# collect_disk || { echo "Disk collection failed."; exit 1; }
+	check_network || { echo "Network check failed."; exit 1; }
+	# collect_load || { echo "Load collection failed."; exit 1; }
 }
 
 # Run the metrics collection
