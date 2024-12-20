@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Detect OS and call the correct file's metric collection function based on that
+detect_os() {
+    case "$(uname)" in
+        Darwin)
+            echo "macOS"
+            ;;
+        Linux)
+            echo "Linux"
+            ;;
+        *)
+            echo "Unsupported OS"
+            exit 1
+            ;;
+    esac
+}
+
+# Main <3
+os=$(detect_os)
+
+if [ "$os" == "macOS" ]; then
+    echo "Detected macOS. Executing macOS metrics collection script."
+    ./collect_macos_metrics.sh
+elif [ "$os" == "Linux" ]; then 
+    echo "Detected Linux. Executing Linux metrics collection script."
+    ./collect_linux_metrics.sh
+else
+    echo "No valid OS detected. Exiting program..."
+    exit 1
+fi
