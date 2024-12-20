@@ -218,47 +218,93 @@ collect_disk() {
     echo "Disk Health: ${disk_health}"
 }
 
-# check_network() {
-#     echo "Collecting network interface statistics on macOS..."
+check_network() {
+    echo "Collecting network interface statistics on macOS..."
 
-#     # Get network statistics using netstat and check interface status using ifconfig.
-#     net_stats=$(netstat -i)
-#     echo "$net_stats"
+    # Collect network statistics
+    echo "Network Statistics:"
+    netstat -i | awk 'NR > 1 && $1 != "lo0" && $1 !~ /^utun/ {
+        errors[$1] = ($5 > 0 || $6 > 0) ? "Packet Errors Detected" : "No Packet Errors"
+    }
+    END {
+        for (iface in errors) {
+            print iface ": " errors[iface]
+        }
+    }'
+    echo
 
-#     echo "Checking network interface statuses..."
-#     ifconfig_output=$(ifconfig)
-#     echo "$ifconfig_output"
+    # Check network interface statuses
+    echo "Checking network interface statuses..."
+    ifconfig_output=$(ifconfig) # Capture the output of ifconfig
+    active_interfaces=$(echo "$ifconfig_output" | awk '/^[a-z]/ {iface=$1} /status: active/ {print iface}')
 
-#     # Check for packet loss by pinging a known reliable address multiple times.
-#     echo "Pinging Google DNS to check connectivity..."
-#     ping_count=10 # Number of pings to send.
-#     ping_output=$(ping -c $ping_count 8.8.8.8 2>&1)  # Capture both output and errors
+    # Check if any active interfaces were found
+    if [[ -z "$active_interfaces" ]]; then
+        echo "No active interfaces found."
+        echo "Available interfaces:"
+        echo "$ifconfig_output" | awk '/^[a-z]/ {print $1}'
+    else
+        echo "Active Interfaces:"
+        echo "$active_interfaces"
+    fi
 
-#     # Check if ping command was successful
-#     if [[ $? -ne 0 ]]; then
-#         echo "Ping command failed. Check your network connection."
-#         return 1
-#     fi
+    # Summary of network interfaces
+    echo "Network Interfaces Summary:"
+    error_free_interfaces=$(netstat -i | awk 'NR > 1 && $1 != "lo0" && $1 !~ /^utun/ && $5 == 0 && $6 == 0 {print $1}' | xargs)
+    interfaces_with_errors=$(netstat -i | awk 'NR > 1 && $1 != "lo0" && $1 !~ /^utun/ && ($5 > 0 || $6 > 0) {print $1}' | xargs)
 
-#     # Extract packet loss percentage using grep without -P
-#     packet_loss=$(echo "$ping_output" | grep -o '[0-9]\+% packet loss' | awk '{print $1}' || echo '100') # Default to '100' if no output.
+    echo "Error-Free Interfaces: ${error_free_interfaces:-None}"
+    echo "Interfaces with Errors: ${interfaces_with_errors:-None}"
 
-#     # Calculate average latency from ping results.
-#     latency_avg=$(echo "$ping_output" | grep 'rtt' | awk -F'/' '{print $2}') 
+    # Check for speed test availability
+    if command -v speedtest-cli &>/dev/null; then
+        echo "Running speed test..."
+        speedtest_output=$(speedtest-cli --simple 2>/dev/null)
+        echo "$speedtest_output"
+    else
+        echo "speedtest-cli is not installed. You can install it with Homebrew:"
+        echo "  brew install speedtest-cli"
+    fi
+    echo
 
-#     if [ "$packet_loss" -eq 0 ]; then
-#         network_health="Good (Avg Latency: ${latency_avg} ms)"
-#     else
-#         network_health="Poor - ${packet_loss}% packet loss (Avg Latency: ${latency_avg} ms)"
-#     fi
+    # Check packet loss and latency
+    echo "Pinging Google DNS to check connectivity..."
+    ping_count=10
+    ping_output=$(ping -c $ping_count 8.8.8.8 2>&1)
 
-#     echo "Network Health: ${network_health}"
+    if [[ $? -ne 0 ]]; then
+        echo "Ping command failed. Check your network connection."
+        return 1
+    fi
 
-#     # Run traceroute for further diagnostics
-#     echo "Running traceroute to diagnose network path..."
-#     traceroute_output=$(traceroute 8.8.8.8)
-#     echo "$traceroute_output"
-# }
+    # Extract packet loss and latency stats safely
+    packet_loss=$(echo "$ping_output" | awk '/packet loss/{print $(NF-1)}' | tr -d '%')
+    latency_avg=$(echo "$ping_output" | awk -F'/' '/round-trip/{print $(NF-2)}')
+
+    # Determine network health
+    if [[ "$packet_loss" == "" ]]; then
+        network_health="Unknown (Ping failed)"
+    elif [[ "$packet_loss" -eq 0 ]]; then
+        network_health="Good (Avg Latency: ${latency_avg:-N/A} ms)"
+    else
+        network_health="Poor - ${packet_loss:-N/A}% packet loss (Avg Latency: ${latency_avg:-N/A} ms)"
+    fi
+    echo "Network Health: $network_health"
+    echo
+
+    # Optional traceroute
+    echo "Running traceroute..."
+    traceroute_output=$(traceroute -m 15 8.8.8.8)
+    if [[ $? -ne 0 ]]; then
+        echo "Traceroute command failed."
+    else 
+        if [[ -z "$traceroute_output" ]]; then 
+            echo "Traceroute produced no output."
+        else 
+            echo "$traceroute_output"
+        fi 
+    fi 
+}
 
 collect_load() {
     echo "Collecting system load metrics on macOS..."
@@ -308,10 +354,12 @@ collect_metrics() {
 	collect_cpu_details || { echo "CPU details collection failed."; exit 1; }
 	collect_gpu || { echo "GPU collection failed."; exit 1; }
 	collect_disk || { echo "Disk collection failed."; exit 1; }
-	# check_network || { echo "Network check failed."; exit 1; }
+	check_network || { echo "Network check failed."; exit 1; }
 	collect_load || { echo "Load collection failed."; exit 1; }
 }
 
 # Run the metrics collection
-collect_metrics
-
+running=True
+while running=True; do
+    collect_metrics
+done
