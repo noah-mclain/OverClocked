@@ -91,10 +91,6 @@ def parse_metrics(data, os_type):
             if match:
                 metrics[key] = match.group(0)
                 
-            if  "load_avg" in key:
-                avg_key = f'load_avg{key.split("_")[-1]}'
-                metrics[avg_key] = value.strip()
-                
     for key in metrics.keys():
         if metrics[key] is None:
             print(f"Warning: {key} is missing from the collected data.")
