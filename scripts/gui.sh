@@ -44,34 +44,44 @@ request_admin_privileges() {
 
 collect_metrics() {
     trap 'exit 0' SIGINT SIGTERM  # Ensure graceful termination on signals
+
     while $collecting_metrics; do
+        # Check if we should stop before running the collection script.
+        if ! $collecting_metrics; then
+            break
+        fi
+
+        # Run the metrics collection script with a timeout.
         echo "$SUDO_PASSWORD" | sudo -S ./collect_metrics.sh || {
             zenity --error --text="Error: Failed to collect metrics." --width=400 --height=200
             exit 1
         }
-        sleep 1  # Add delay between collections
+
+        sleep 1  # Add delay between collections.
     done
 }
 
 start_collecting_metrics() {
     collecting_metrics=true
-    collect_metrics &
-    METRICS_PID=$!
+    collect_metrics &  # Start collecting metrics in the background.
+    METRICS_PID=$!    # Capture the PID of the background process.
 }
 
 stop_collecting_metrics() {
-    if [[ $METRICS_PID -ne 0 ]]; then
-        collecting_metrics=false
-        kill $METRICS_PID 2>/dev/null
-        wait $METRICS_PID 2>/dev/null || zenity --info --text="Metrics collection stopped successfully." --width=400 --height=200
-        METRICS_PID=0
-    fi
+    collecting_metrics=false  # Immediately stop collecting metrics.
+    
+    # If a metrics collection process is running, kill it.
+    if [[ $METRICS_PID -gt 0 ]]; then 
+        kill $METRICS_PID 2>/dev/null 
+        wait $METRICS_PID 2>/dev/null || zenity --info --text="Metrics collection stopped successfully." --width=400 --height=200 
+        METRICS_PID=0 
+    fi 
 }
 
-# Trap SIGINT and SIGTERM at the beginning
+# Trap SIGINT and SIGTERM at the beginning.
 trap 'stop_collecting_metrics; exit' SIGINT SIGTERM
 
-# Main logic
+# Main logic.
 if ! request_admin_privileges; then
     zenity --error --text="Failed to obtain admin privileges. Exiting."
     exit 1
@@ -132,10 +142,16 @@ while true; do
                 "View Memory/RAM Metrics") show_metric_data "Memory/RAM Metrics" ;;
                 "View Network Metrics") show_metric_data "Network Metrics" ;;
                 "View Load Metrics") show_metric_data "Load Metrics" ;;
-                "Exit") stop_collecting_metrics; break ;;
+                "Exit")
+                    stop_collecting_metrics 
+                    break 
+                    ;;
             esac ;;
-        *) stop_collecting_metrics; break ;;
+        *) 
+            stop_collecting_metrics 
+            break 
+            ;;
     esac
 done
 
-exit 0
+exit 0 

@@ -109,6 +109,30 @@ collect_cpu_details() {
    sudo powermetrics -s cpu_power -n 1 | grep 'E-Cluster HW active frequency' || echo "Could not retrieve CPU frequency."
 }
 
+check_gpu_type() {
+    echo "Checking GPU type..."
+
+    # Capture GPU info
+    gpu_info=$(system_profiler SPDisplaysDataType 2>/dev/null)
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to fetch GPU information. Please ensure you have the necessary permissions."
+        gpu_type="Unknown"
+        return 1
+    fi
+
+    # Determine GPU type
+    if echo "$gpu_info" | grep -qi "Apple"; then
+        gpu_type="Apple Silicon"
+    elif echo "$gpu_info" | grep -qi "Intel"; then
+        gpu_type="Intel"
+    else
+        gpu_type="Unknown"
+    fi
+
+    echo "GPU Type: $gpu_type"
+}
+
 collect_gpu() {
     echo "=============================="
     echo "   Collecting GPU Metrics     "
@@ -188,6 +212,8 @@ collect_disk() {
     
     # Initialize variables for additional SMART attributes
     smart_attributes=""
+    temperature="N/A"
+    percentage_used="N/A"
 
     # Try to get additional SMART attributes using smartctl
     if command -v smartctl &> /dev/null; then
@@ -199,6 +225,9 @@ collect_disk() {
 
     echo "Disk Usage: ${disk_usage}%"
     echo "SMART Status: ${smart_status}"
+
+    temperature=$(echo "$smart_attributes" | grep "Temperature" | awk '{print $2}')
+    percentage_used=$(echo "$smart_attributes" | grep "Percentage Used" | awk '{print $3}')
 
     # Updated Disk Health Logic
     if [[ "$smart_status" == "Verified" && "$disk_usage" -lt 90 ]]; then
@@ -260,12 +289,25 @@ check_network() {
     if command -v speedtest-cli &>/dev/null; then
         echo "Running speed test..."
         speedtest_output=$(speedtest-cli --simple 2>/dev/null)
-        echo "$speedtest_output"
+
+        if [[ $? -eq 0 ]]; then
+            ping_time=$(echo "$speedtest_output" | grep 'Ping' | awk '{print $2}')
+            download_speed=$(echo "$speedtest_output" | grep 'Download' | awk '{print $2}')
+            upload_speed=$(echo "$speedtest_output" | grep 'Upload' | awk '{print $2}')
+            echo "$speedtest_output"
+        else
+            echo "Speed test failed."
+            ping_time="N/A"
+            download_speed="N/A"
+            upload_speed="N/A"
+        fi
     else
         echo "speedtest-cli is not installed. You can install it with Homebrew:"
         echo "  brew install speedtest-cli"
+        ping_time="N/A"
+        download_speed="N/A"
+        upload_speed="N/A"
     fi
-    echo
 
     # Check packet loss and latency
     echo "Pinging Google DNS to check connectivity..."
@@ -282,19 +324,21 @@ check_network() {
     latency_avg=$(echo "$ping_output" | awk -F'/' '/round-trip/{print $(NF-2)}')
 
     # Determine network health
-    if [[ "$packet_loss" == "" ]]; then
+    if [[ -z "$packet_loss" ]]; then
         network_health="Unknown (Ping failed)"
     elif [[ "$packet_loss" -eq 0 ]]; then
         network_health="Good (Avg Latency: ${latency_avg:-N/A} ms)"
     else
         network_health="Poor - ${packet_loss:-N/A}% packet loss (Avg Latency: ${latency_avg:-N/A} ms)"
     fi
+    
     echo "Network Health: $network_health"
-    echo
-
+    
     # Optional traceroute
     echo "Running traceroute..."
+    
     traceroute_output=$(traceroute -m 15 8.8.8.8)
+    
     if [[ $? -ne 0 ]]; then
         echo "Traceroute command failed."
     else 
@@ -352,10 +396,29 @@ collect_metrics() {
 	collect_memory || { echo "Memory collection failed."; exit 1; }
 	collect_cpu || { echo "CPU collection failed."; exit 1; }
 	collect_cpu_details || { echo "CPU details collection failed."; exit 1; }
+	check_gpu_type || { echo "GPU type check failed."; exit 1; } # Ensure this runs successfully
 	collect_gpu || { echo "GPU collection failed."; exit 1; }
 	collect_disk || { echo "Disk collection failed."; exit 1; }
 	check_network || { echo "Network check failed."; exit 1; }
 	collect_load || { echo "Load collection failed."; exit 1; }
+
+    # Output collected metrics in key-value format
+    echo 
+    echo
+    echo "Total RAM: ${total_memory_mb} MB"
+    echo "Used RAM: ${used_memory_mb} MB"
+    echo "Free RAM: ${free_memory_mb} MB"
+    echo "Average CPU Utilization: ${avg_cpu_usage}%"
+    echo "GPU Active Frequency: ${gpu_frequency} MHz"
+    echo "GPU Active Residency: ${gpu_residency}%"
+    echo "GPU Power Consumption: ${gpu_power} mW"
+    echo "Disk Usage: ${disk_usage}%"
+    echo "Temperature: ${temperature:-N/A} Celsius" 
+    echo "Percentage Used: ${percentage_used:-N/A}%" 
+    echo "Ping: ${ping_time:-N/A} ms"  
+    echo "Download: ${download_speed:-N/A} Mbit/s" 
+    echo "Upload: ${upload_speed:-N/A} Mbit/s" 
+    echo "Average Load: ${load_avg:-N/A}"
 }
 
 # Run the metrics collection
