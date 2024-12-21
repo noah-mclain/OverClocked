@@ -418,7 +418,7 @@ collect_metrics() {
     echo "Ping: ${ping_time:-N/A} ms"  
     echo "Download: ${download_speed:-N/A} Mbit/s" 
     echo "Upload: ${upload_speed:-N/A} Mbit/s" 
-    echo "Average Load: ${load_avg:-N/A}"
+    echo "Average Load: ${five_min:-N/A}"
 }
 
 # Run the metrics collection

@@ -30,6 +30,16 @@ def run_script(os_type):
     except Exception as e:
         raise RuntimeError(f"An error occurred: {e}")
     
+def parse_load_average(line):
+    match = re.search(r'Average Load:\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)', line)
+    if match:
+        return {
+            '1_min': match.group(1),
+            '5_min': match.group(2),
+            '15_min': match.group(3),
+        }
+    return None
+    
 def parse_metrics(data, os_type):
     linux_metrics = {
         'cpu_utilization': None,
@@ -64,7 +74,7 @@ def parse_metrics(data, os_type):
         'ping': None,
         'download': None,
         'upload': None,
-        'load_avg': None,
+        'five_min': None,
     }
     
     metrics = linux_metrics if os_type == "Linux" else macos_metrics
@@ -80,12 +90,14 @@ def parse_metrics(data, os_type):
             match = re.search(r'([\d.]+(?:Gi|%|°C)?)', value) if key != 'ipv6_address' else re.search(r'[0-9a-fA-F:]+', value)
             if match:
                 metrics[key] = match.group(0)
-
-        for key in metrics.keys():
-            if metrics[key] is None:
-                print(f"Warning: {key} is missing from the collected data.")
-
-
+                
+            if  "load_avg" in key:
+                avg_key = f'load_avg{key.split("_")[-1]}'
+                metrics[avg_key] = value.strip()
+                
+    for key in metrics.keys():
+        if metrics[key] is None:
+            print(f"Warning: {key} is missing from the collected data.")
 
         # if key in metrics:
         #     if key == 'ipv6_address':
@@ -97,7 +109,6 @@ def parse_metrics(data, os_type):
         #         metrics[key] = match.group(0)
 
     return metrics
-
 
 if __name__=="__main__":
     os_type = platform.system()
@@ -113,8 +124,11 @@ if __name__=="__main__":
             with database_connection() as connection:            
                 if os_type == "Darwin":
                     connection.create_mac_table()
+                    print("Created")
                     connection.store_mac_metrics(metrics)
+                    print("Stored")
                     results = connection.retrieve_metrics(1)
+                    print("Retrieved")
                 elif os_type == "Linux":
                     connection.create_linux_table()
                     connection.store_linux_metrics(metrics)

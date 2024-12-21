@@ -55,7 +55,7 @@ class database_connection:
         ping FLOAT,
         download FLOAT,
         upload FLOAT,
-        load_avg FLOAT
+        five_min FLOAT
         );''')
         self.conn.commit()
     
