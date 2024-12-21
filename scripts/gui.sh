@@ -46,18 +46,12 @@ collect_metrics() {
     trap 'exit 0' SIGINT SIGTERM  # Ensure graceful termination on signals
 
     while $collecting_metrics; do
-        # Check if we should stop before running the collection script.
-        if ! $collecting_metrics; then
-            break
-        fi
-
-        # Run the metrics collection script with a timeout.
-        echo "$SUDO_PASSWORD" | sudo -S ./collect_metrics.sh || {
+        metrics_output=$(echo "$SUDO_PASSWORD" | sudo -S ./collect_metrics.sh) || {
             zenity --error --text="Error: Failed to collect metrics." --width=400 --height=200
             exit 1
         }
-
-        sleep 1  # Add delay between collections.
+        echo "$metrics_output" > system_metrics.txt
+        sleep 1  # Add delay between collections
     done
 }
 
@@ -109,15 +103,70 @@ generate_reports() {
 show_metric_data() {
     local metric_type=$1
     case $metric_type in
-        "Overall Metrics") zenity --info --title="$metric_type" --text="$(cat overall_metrics.txt)" ;;
-        "CPU Metrics") zenity --info --title="$metric_type" --text="$(cat cpu_metrics.txt)" ;;
+        "Overall Metrics") zenity --info --title="$metric_type" --text="$(show_overall_metrics)" --width=500 --height=500 ;;
+        "CPU Metrics") zenity --info --title="$metric_type" --text="$(show_cpu_metrics)" --width=500 --height=500 ;;
         "GPU Metrics") zenity --info --title="$metric_type" --text="$(cat gpu_metrics.txt)" ;;
-        "Memory/RAM Metrics") zenity --info --title="$metric_type" --text="$(cat memory_metrics.txt)" ;;
-        "Network Metrics") zenity --info --title="$metric_type" --text="$(cat network_metrics.txt)" ;;
-        "Load Metrics") zenity --info --title="$metric_type" --text="$(cat load_metrics.txt)" ;;
+        "Memory/RAM Metrics") zenity --info --title="$metric_type" --text="$(show_memory_metrics)" --width=500 --height=500;;
+        "Network Metrics") zenity --info --title="$metric_type" --text="$(show_network_metrics)" --width=500 --height=500;;
+        "Load Metrics") zenity --info --title="$metric_type" --text="$(show_load_metrics)" --width=500 --height=500;;
+        "Disk Metrics") zenity --info --title="$metric_type" --text="$(show_disk_metrics)" --width=500 --height=500;;
     esac
 }
-
+show_network_metrics(){
+    network_adapter=$(cat 'system_metrics.txt' | grep 'Network Adapter Model')
+    sent=$(cat 'system_metrics.txt' | grep 'Sent')
+    received=$(cat 'system_metrics.txt' | grep 'Received')
+    echo "$network_adapter"
+    echo "$sent kb/s"
+    echo "$received kb/s" 
+}
+show_load_metrics(){
+    startup_time=$(cat 'system_metrics.txt' | grep 'Startup time')
+    average_process_wait_time=$(cat 'system_metrics.txt' | grep 'Average process waiting time')
+    echo "$startup_time"
+    echo "$average_process_wait_time"
+}
+show_overall_metrics(){
+    startup_time=$(cat 'system_metrics.txt' | grep 'Startup time')
+    average_process_wait_time=$(cat 'system_metrics.txt' | grep 'Average process waiting time')
+    total_ram=$(cat 'system_metrics.txt' | grep 'Total RAM')
+    cpu=$(cat 'system_metrics.txt' | grep 'CPU Model')
+    gpu=$(cat 'system_metrics.txt' | grep 'GPU:')
+    network_adapter=$(cat 'system_metrics.txt' | grep 'Network Adapter Model')
+    echo "$cpu"
+    echo "$total_ram"
+    echo "$gpu"
+    echo "$network_adapter"
+    echo "$startup_time"
+    echo "$average_process_wait_time"
+}
+show_disk_metrics(){
+    total_disk_space=$(cat 'system_metrics.txt' | grep 'Total Disk Space')
+    used_disk_space=$(cat 'system_metrics.txt' | grep 'Used Disk Space')
+    available_disk_space=$(cat 'system_metrics.txt' | grep 'Available Disk Space')
+    echo "$total_disk_space"
+    echo "$used_disk_space"
+    echo "$available_disk_space"
+}
+show_memory_metrics(){
+    total_ram=$(cat 'system_metrics.txt' | grep 'Total RAM')
+    free_ram=$(cat 'system_metrics.txt' | grep 'Free RAM')
+    utilized_ram=$(cat 'system_metrics.txt' | grep 'Utilized RAM')
+    echo "$total_ram"
+    echo "$free_ram"
+    echo "$utilized_ram"
+}
+show_cpu_metrics(){
+    cpu=$(cat 'system_metrics.txt' | grep 'CPU Model')
+    #CPU Utilization: 31.08%
+    #CPU Temperature: +51.0°C
+    cpu_utilization=$(cat 'system_metrics.txt' | grep 'CPU Utilization')
+    cpu_temperature=$(cat 'system_metrics.txt' | grep 'CPU Temperature')
+    echo "$cpu"
+    echo "$cpu_utilization"
+    echo "$cpu_temperature"
+    python3 grapher.py "cpu" &   
+}
 while true; do
     ACTION=$(zenity --list \
                     --title="System Monitoring Tool" \
@@ -129,6 +178,7 @@ while true; do
                     "View Memory/RAM Metrics" \
                     "View Network Metrics" \
                     "View Load Metrics" \
+                    "View Disk Metrics" \
                     "Exit" \
                     --width=500 --height=500)
 
@@ -142,10 +192,8 @@ while true; do
                 "View Memory/RAM Metrics") show_metric_data "Memory/RAM Metrics" ;;
                 "View Network Metrics") show_metric_data "Network Metrics" ;;
                 "View Load Metrics") show_metric_data "Load Metrics" ;;
-                "Exit")
-                    stop_collecting_metrics 
-                    break 
-                    ;;
+                "View Disk Metrics") show_metric_data "Disk Metrics" ;;
+                "Exit") stop_collecting_metrics; break ;;
             esac ;;
         *) 
             stop_collecting_metrics 
