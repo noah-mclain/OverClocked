@@ -21,14 +21,12 @@ def report():
 
     return generate_report(os_type, latest_metrics)
 
-
 def generate_report(os_type, metrics):
     if os_type == "Linux":
         return render_template('linux_system_report.html', metrics=metrics)
-    elif os_type == "Darwin":  #macOS
+    elif os_type == "Darwin":  # macOS
         return render_template('macos_system_report.html', metrics=metrics)
-    
-    
+
 @app.route('/download_markdown')
 def download_markdown():
     os_type = platform.system()
@@ -55,7 +53,7 @@ def download_markdown():
         f.write(markdown_content)
 
     return send_file(markdown_file_path, as_attachment=True)
-    
+
 if __name__ == '__main__':
     print(f"Template folder: {app.template_folder}")
     app.run(debug=True)
