@@ -135,7 +135,7 @@ get_total_boot_time() {
 }
 #System load average
 get_system_load(){
-    uptime | awk '{print $8}' | tr -d ','
+    uptime | awk '{print $11}' | tr -d ','
 }
 #Network Adapter Name
 get_network_adapter_name(){

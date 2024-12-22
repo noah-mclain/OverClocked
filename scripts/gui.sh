@@ -51,6 +51,7 @@ collect_metrics() {
             exit 1
         }
         echo "$metrics_output" > system_metrics.txt
+        python3 "bash_to_csv.py"
         sleep 1  # Add delay between collections
     done
 }

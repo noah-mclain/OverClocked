@@ -110,28 +110,24 @@ if __name__=="__main__":
     os_type = platform.system()
     print(os_type)
     try:
-        while True:
-            print("Entered loop!")
-            data = run_script(os_type)
-            print("Running!")
-            metrics = parse_metrics(data, os_type)
-            print(metrics)
+        print("Entered loop!")
+        data = run_script(os_type)
+        print("Running!")
+        metrics = parse_metrics(data, os_type)
+        print(metrics)
             
-            with database_connection() as connection:            
-                if os_type == "Darwin":
-                    connection.create_mac_table()
-                    print("Created")
-                    connection.store_mac_metrics(metrics)
-                    print("Stored")
-                    results = connection.retrieve_metrics(1)
-                    print("Retrieved")
-                elif os_type == "Linux":
-                    connection.create_linux_table()
-                    connection.store_linux_metrics(metrics)
-                    results = connection.retrieve_metrics(1)
-                
-            plot_cpu_utilization(results)
-            time.sleep(5)
+        with database_connection() as connection:            
+            if os_type == "Darwin":
+                connection.create_mac_table()
+                print("Created")
+                connection.store_mac_metrics(metrics)
+                print("Stored")
+                results = connection.retrieve_metrics(1)
+                print("Retrieved")
+            elif os_type == "Linux":
+                connection.create_linux_table()
+                connection.store_linux_metrics(metrics)
+                results = connection.retrieve_metrics(1)
             #print(results)
     except KeyboardInterrupt:
         print("Process interrupted by user")
