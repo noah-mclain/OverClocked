@@ -37,7 +37,7 @@ fi
 mkdir -p reports
 
 # Start the Flask app in the background
-python3 report_metrics.py &
+python3 scripts/report_metrics.py &
 
 # Wait until Flask is running on port 5000 (or change to 5001 if needed)
 while ! nc -z localhost 5000; do   

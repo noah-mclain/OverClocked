@@ -1,5 +1,21 @@
 #!/bin/bash
-#hellooooo
+detect_os() {
+    case "$(uname)" in
+        Darwin)
+            echo "macOS"
+            ;;
+        Linux)
+            echo "Linux"
+            ;;
+        *)
+            echo "Unsupported OS"
+            exit 1
+            ;;
+    esac
+}
+
+os=$(detect_os)
+
 request_admin_privileges() {
     if command -v fprintd-verify > /dev/null; then
         if zenity --question --text="Biometric authentication available. Do you want to use it?" --ok-label="Use Biometrics" --cancel-label="Enter Password" --width=400 --height=200; then
@@ -45,16 +61,32 @@ request_admin_privileges() {
 collect_metrics() {
     trap 'exit 0' SIGINT SIGTERM  # Ensure graceful termination on signals
 
-    while $collecting_metrics; do
-        metrics_output=$(echo "$SUDO_PASSWORD" | sudo -S ./collect_metrics.sh) || {
-            zenity --error --text="Error: Failed to collect metrics." --width=400 --height=200
-            exit 1
-        }
-        echo "$metrics_output" > system_metrics.txt
-        python3 "bash_to_csv.py"
-        sleep 1  # Add delay between collections
-    done
+    # Start a new shell with sudo privileges and call the appropriate metrics collection script based on OS detection.
+    sudo bash -c '
+        while $collecting_metrics; do
+            os=$(uname)
+            if [ "$os" == "Darwin" ]; then
+                metrics_output=$(scripts/collect_macos_metrics.sh) || {
+                    zenity --error --text="Error: Failed to collect macOS metrics." --width=400 --height=200
+                    exit 1
+                }
+            elif [ "$os" == "Linux" ]; then 
+                metrics_output=$(scripts/collect_linux_metrics.sh) || {
+                    zenity --error --text="Error: Failed to collect Linux metrics." --width=400 --height=200
+                    exit 1
+                }
+            else
+                zenity --error --text="Unsupported OS detected. Exiting." --width=400 --height=200
+                exit 1
+            fi
+            
+            echo "$metrics_output" > system_metrics.txt
+            python3 "bash_to_csv.py"
+            sleep 1  # Add delay between collections
+        done
+    ' <<< "$SUDO_PASSWORD"  # Pass the password to the sub-shell
 }
+
 
 start_collecting_metrics() {
     collecting_metrics=true
@@ -75,7 +107,7 @@ stop_collecting_metrics() {
 # Trap SIGINT and SIGTERM at the beginning.
 trap 'stop_collecting_metrics; exit' SIGINT SIGTERM
 
-# Main logic.
+# Main <3
 if ! request_admin_privileges; then
     zenity --error --text="Failed to obtain admin privileges. Exiting."
     exit 1
@@ -93,7 +125,7 @@ generate_reports() {
         return
     fi
 
-    if ./gen_reports.sh; then
+    if scripts/gen_reports.sh; then
         zenity --info --text="Reports generated:\n- Markdown Report: ${MARKDOWN_REPORT}\n- HTML Report: ${HTML_REPORT}"
 
     else
@@ -212,8 +244,7 @@ while true; do
             esac ;;
         *) 
             stop_collecting_metrics 
-            break 
-            ;;
+            break ;;
     esac
 done
 

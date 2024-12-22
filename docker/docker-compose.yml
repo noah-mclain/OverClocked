@@ -1,24 +1,17 @@
 services:
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..  
+      dockerfile: docker/Dockerfile 
+    privileged: true
     ports:
-      - "8080:8080"
+      - "5001:5001"  # Map host port 5001 to container port 5001
     volumes:
-      - ../:/app # This mound the entire project dir so its easier to access the scripts and configs
+      - ../:/app  # Mount the entire project directory for easier access to scripts and configs
     environment:
-      DB_HOST: db
-      DB_USER: user
-      DB_PASSWORD: userpassword
-      DB_NAME: metrics_db
+      DATABASE_URL: "sqlite:///app/data/system_metrics.db"
+      DISPLAY: "host.docker.internal:0" 
 
-  db:
-    image: mysql:5.7
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: metrics_db
-      MYSQL_USER: user
-      MYSQL_PASSWORD: userpassword
-    ports:
-      - "3306:3306"
+networks:
+  OverClockedNetwork:
+    driver: bridge

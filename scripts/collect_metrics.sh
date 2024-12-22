@@ -21,10 +21,10 @@ os=$(detect_os)
 
 if [ "$os" == "macOS" ]; then
     echo "Detected macOS. Executing macOS metrics collection script."
-    ./collect_macos_metrics.sh
+    /app/scripts/collect_macos_metrics.sh
 elif [ "$os" == "Linux" ]; then 
     echo "Detected Linux. Executing Linux metrics collection script."
-    ./collect_linux_metrics.sh
+    /app/scripts/collect_linux_metrics.sh
 else
     echo "No valid OS detected. Exiting program..."
     exit 1

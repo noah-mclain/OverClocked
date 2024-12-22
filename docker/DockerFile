@@ -1,7 +1,10 @@
 # Use an official Python runtime as a parent image
-FROM python:3.13
+FROM ubuntu:22.04
 
-# Set the working directory in the container
+ENV DEBIAN_FRONTEND=noninteractive \
+    TZ=Etc/UTC
+
+# Set the working directory
 WORKDIR /app
 
 # Copy scripts, config, and requirements.txt into the container
@@ -11,11 +14,40 @@ COPY ../docs/requirements.txt /app/requirements.txt
 
 # Install necessary packages and Python dependencies
 RUN apt-get update && \
-    apt-get install -y bash mysql-client && \
-    pip install --no-cache-dir -r /app/requirements.txt
+    apt-get install -y --no-install-recommends \
+    lm-sensors \
+    smartmontools \
+    ifstat \
+    sudo \
+    sysstat \
+    iproute2 \
+    pciutils
 
-# Expose port 8080 for the application
-EXPOSE 8080
+RUN apt-get install -y bc \
+    curl \
+    zenity \
+    mesa-utils \
+    libgl1-mesa-glx \
+    libgl1-mesa-dri
+
+RUN apt-get install -y --fix-missing build-essential \
+    libssl-dev \
+    libegl1 \
+    libgl1 \
+    dbus-x11 \
+    x11-apps \
+    python3 \
+    python3-pip \
+    python3-venv && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN yes "" | sensors-detect || true
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Expose port 5001 for the application (adjust if necessary)
+EXPOSE 5001
 
 # Command to run when starting the container
 CMD ["bash", "scripts/gui.sh"]

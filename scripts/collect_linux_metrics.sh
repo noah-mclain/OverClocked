@@ -241,8 +241,7 @@ echo "IPV6 Address: $ipv6"
             exit 1
             ;;
     esac
-    echo "GPU Utilization:"
-    echo "$gpu_utilization"
+    echo "GPU Utilization: $gpu_utilization"
     echo "GPU Temperature: $gpu_temperature"
     sleep 1
 
