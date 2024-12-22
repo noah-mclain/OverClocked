@@ -26,6 +26,7 @@
     "logicalcpu",
     "logp",
     "machdep",
+    "markdownify",
     "matplotlib",
     "Mbit",
     "Mbps",
@@ -68,5 +69,5 @@
     "zenity",
     "zentiy"
   ],
-  "workbench.colorTheme": "Bearded Theme Aquarelle Lilac"
+  "workbench.colorTheme": "agenomicsphd-code"
 }
