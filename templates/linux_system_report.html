@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux System Metrics Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #000000;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: rgb(0, 0, 0);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .metric {
+            margin-bottom: 20px;
+        }
+        .metric h2 {
+            font-size: 1.5em;
+            color: #ffffff;
+        }
+        .metric p {
+            font-size: 1.2em; 
+            color: #d3d3d3; 
+        }
+        footer {
+            text-align:center; 
+            padding:10px; 
+            background-color:rgb(244,228,255); 
+            color:rgb(0,0,0); 
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Linux System Metrics Report</h1>
+    <p>Generated on {{ metrics['timestamp'] }}</p>
+</header>
+
+<div class="container">
+    {% if metrics %}
+        
+         <!-- Linux-specific metrics -->
+        
+         <!-- CPU Utilization -->
+         <div class="metric">
+             <h2>CPU Utilization</h2>
+             <p>{{ metrics.get('cpu_utilization', 'N/A') }}%</p>
+         </div>
+
+         <!-- CPU Temperature -->
+         <div class="metric">
+             <h2>CPU Temperature</h2>
+             <p>{{ metrics.get('cpu_temperature', 'N/A') }} °C</p>
+         </div>
+
+         <!-- RAM Metrics -->
+         <div class="metric">
+             <h2>Total RAM</h2>
+             <p>{{ metrics.get('total_ram', 'N/A') }} GB</p>
+         </div>
+
+         <div class="metric">
+             <h2>Used RAM</h2>
+             <p>{{ metrics.get('used_ram', 'N/A') }} GB</p>
+         </div>
+
+         <div class="metric">
+             <h2>Free RAM</h2>
+             <p>{{ metrics.get('free_ram', 'N/A') }} GB</p>
+         </div>
+
+         <!-- Disk Space Metrics -->
+         <div class="metric">
+             <h2>Total Disk Space</h2>
+             <p>{{ metrics.get('total_disk_space', 'N/A') }} GB</p>
+         </div>
+
+         <div class="metric">
+             <h2>Used Disk Space</h2>
+             <p>{{ metrics.get('used_disk_space', 'N/A') }} GB</p>
+         </div>
+
+         <!-- Available Disk Space -->
+         <!-- You may need to calculate this based on total and used disk space in your backend logic -->
+         <!-- Assuming you have a way to retrieve available disk space -->
+         <div class="metric">
+             <h2>Available Disk Space</h2>
+             <p>{{ (metrics.get('total_disk_space', 0) - metrics.get('used_disk_space', 0)) | round(2) }} GB</p>
+         </div>
+
+         <!-- Network Metrics -->
+         <div class="metric">
+             <h2>IPv4 Address</h2>
+             <p>{{ metrics.get('ipv4_address', 'N/A') }}</p>
+         </div>
+
+         <div class="metric">
+             <h2>IPv6 Address</h2>
+             <p>{{ metrics.get('ipv6_address', 'N/A') }}</p>
+         </div>
+
+         <!-- Network Sent and Received -->
+         <div class="metric">
+             <h2>Network Sent</h2>
+             <p>{{ metrics.get('sent', 'N/A') }} MB</p>
+         </div>
+
+         <div class="metric">
+             <h2>Network Received</h2>
+             <p>{{ metrics.get('received', 'N/A') }} MB</p>
+         </div>
+
+    {% else %}
+        <p>No metrics available for this operating system.</p>
+    {% endif %}
+    
+</div>
+
+<footer>
+    <p>&copy; 2024 Linux System Metrics Report</p>
+</footer>
+
+</body>
+</html>
