@@ -13,11 +13,14 @@ class Grapher():
         os_type = platform.system()
         print(os_type)
         with database_connection() as connection:
+            data = connection.retrieve_metrics(os_type, limit=5)
             if self.metric == "cpu":
-                data = connection.retrieve_metrics(os_type)
                 live_graph.plot_cpu_utilization(data, os_type)
             elif self.metric == "ram":
-                ...
+                live_graph.plot_ram_utilization(data, os_type)
+            elif self.metric =="network":
+                live_graph.plot_network_utilization(data, os_type)
+                
 
         
         

@@ -121,7 +121,7 @@ class database_connection:
                 'timestamp': row[1],
                 'cpu_utilization': parse_percentage(row[5]),
                 'cpu_temperature': replace_none(row[6], 0),
-                    'used_disk_space': replace_none(row[7], 0),
+                'used_disk_space': replace_none(row[7], 0),
                 'available_disk_space': replace_none(row[8], 0),
                 'ipv4_address': replace_none(row[9], "N/A"),  
                 'ipv6_address': replace_none(row[10], "N/A"), 

@@ -64,7 +64,6 @@ start_collecting_metrics() {
 
 stop_collecting_metrics() {
     collecting_metrics=false  # Immediately stop collecting metrics.
-    
     # If a metrics collection process is running, kill it.
     if [[ $METRICS_PID -gt 0 ]]; then 
         kill $METRICS_PID 2>/dev/null 
@@ -96,6 +95,7 @@ generate_reports() {
 
     if ./gen_reports.sh; then
         zenity --info --text="Reports generated:\n- Markdown Report: ${MARKDOWN_REPORT}\n- HTML Report: ${HTML_REPORT}"
+
     else
         zenity --error --text="Error: Failed to generate reports."
     fi
@@ -106,7 +106,7 @@ show_metric_data() {
     case $metric_type in
         "Overall Metrics") zenity --info --title="$metric_type" --text="$(show_overall_metrics)" --width=500 --height=500 ;;
         "CPU Metrics") zenity --info --title="$metric_type" --text="$(show_cpu_metrics)" --width=500 --height=500 ;;
-        "GPU Metrics") zenity --info --title="$metric_type" --text="$(cat gpu_metrics.txt)" ;;
+        "GPU Metrics") zenity --info --title="$metric_type" --text="$(show_gpu_metrics)" --width=500 --height=500 ;;
         "Memory/RAM Metrics") zenity --info --title="$metric_type" --text="$(show_memory_metrics)" --width=500 --height=500;;
         "Network Metrics") zenity --info --title="$metric_type" --text="$(show_network_metrics)" --width=500 --height=500;;
         "Load Metrics") zenity --info --title="$metric_type" --text="$(show_load_metrics)" --width=500 --height=500;;
@@ -120,6 +120,7 @@ show_network_metrics(){
     echo "$network_adapter"
     echo "$sent kb/s"
     echo "$received kb/s" 
+    python3 grapher.py "network" & 
 }
 show_load_metrics(){
     startup_time=$(cat 'system_metrics.txt' | grep 'Startup time')
@@ -150,12 +151,13 @@ show_disk_metrics(){
     echo "$available_disk_space"
 }
 show_memory_metrics(){
-    total_ram=$(cat 'system_metrics.txt' | grep 'Total RAM')
+    total_ram=$(cat 'system_metrics.txt' | grep -m 1 'Total RAM')
     free_ram=$(cat 'system_metrics.txt' | grep 'Free RAM')
     utilized_ram=$(cat 'system_metrics.txt' | grep 'Utilized RAM')
     echo "$total_ram"
     echo "$free_ram"
     echo "$utilized_ram"
+    gnome-terminal -- python3 grapher.py "ram" & 
 }
 show_cpu_metrics(){
     cpu=$(cat 'system_metrics.txt' | grep 'CPU Model')
@@ -167,6 +169,18 @@ show_cpu_metrics(){
     echo "$cpu_utilization"
     echo "$cpu_temperature"
     gnome-terminal -- python3 grapher.py "cpu" &   
+}
+show_gpu_metrics(){
+    gpu=$(cat 'system_metrics.txt' | grep 'GPU:')
+    rcs=$(cat 'system_metrics.txt' | grep 'RCS')
+    bcs=$(cat 'system_metrics.txt' | grep 'BCS')
+    vcs=$(cat 'system_metrics.txt' | grep 'VCS')
+    temperature=$(cat 'system_metrics.txt' | grep 'GPU Temperature')
+    echo "$gpu"
+    echo "$rcs"
+    echo "$bcs"
+    echo "$vcs"
+    echo "$temperature"
 }
 while true; do
     ACTION=$(zenity --list \

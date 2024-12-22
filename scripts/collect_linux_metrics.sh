@@ -86,10 +86,12 @@ get_gpu_temperature_amd() {
     fi
 }
 get_gpu_utilization_intel() {
-    if command -v sensors &> /dev/null; then
-        sensors | grep 'i915:' | grep 'gpu' | awk '{print $1, $2, $3, $4}'  # Try to fetch Intel GPU utilization
+    if command -v intel_gpu_top &> /dev/null; then
+        sudo timeout 5 intel_gpu_top > gpu_output.txt
+        total=$(awk 'NR > 2 {rcs+=$9; bcs+=$12; vcs+=$15} END {print "RCS Sum: " rcs, "\nBCS Sum: " bcs, "\nVCS Sum: " vcs, "\nTotal: " rcs + bcs + vcs}' gpu_output.txt)
+        echo "$total"
     else
-        echo "sensors command not found, install lm-sensors and Intel GPU drivers."
+        echo "intel_gpu_top is not installed."
     fi
 }
 get_gpu_temperature_intel() {
@@ -143,25 +145,42 @@ get_network_adapter_name(){
 }
 #sending and receiving
 get_sending_rate() {
-    send_kbps=$(ifstat -i wlp2s0 1 1 | tail -n 1 | head -n 1 | awk '{print $1}')
-    if [[ -z $send_kbps ]]; then
+    if ip link show wlp2s0 > /dev/null 2>&1; then
+        send_kbps=$(ifstat -i wlp2s0 1 1 | tail -n 1 | awk '{print $1}')
+    elif ip link show eth0 > /dev/null 2>&1; then
+        send_kbps=$(ifstat -i eth0 1 1 | tail -n 1 | awk '{print $1}')
+    else
         send_kbps=0.00
     fi
     echo $send_kbps
 }
+
 get_receiving_rate() {
-    recv_kbps=$(ifstat -i wlp2s0 1 1 | tail -n 1 | head -n 2 | awk '{print $2}')
-    if [[ -z $recv_kbps ]]; then
+    if ip link show wlp2s0 > /dev/null 2>&1; then
+        recv_kbps=$(ifstat -i wlp2s0 1 1 | tail -n 1 | awk '{print $2}')
+    elif ip link show eth0 > /dev/null 2>&1; then
+        recv_kbps=$(ifstat -i eth0 1 1 | tail -n 1 | awk '{print $2}')
+    else
         recv_kbps=0.00
     fi
     echo $recv_kbps
 }
-#IP addresses
+
+# IP addresses
 get_ipv4_address() {
-    ip -4 addr show wlp2s0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1
+    if ip link show wlp2s0 > /dev/null 2>&1; then
+        ip -4 addr show wlp2s0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1
+    elif ip link show eth0 > /dev/null 2>&1; then
+        ip -4 addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1
+    fi
 }
+
 get_ipv6_address() {
-    ip -6 addr show wlp2s0 | grep 'inet6 ' | awk '{print $2}' | cut -d/ -f1
+    if ip link show wlp2s0 > /dev/null 2>&1; then
+        ip -6 addr show wlp2s0 | grep 'inet6 ' | awk '{print $2}' | cut -d/ -f1
+    elif ip link show eth0 > /dev/null 2>&1; then
+        ip -6 addr show eth0 | grep 'inet6 ' | awk '{print $2}' | cut -d/ -f1
+    fi
 }
 #Report
 check_smart_health
@@ -215,14 +234,15 @@ echo "IPV6 Address: $ipv6"
         "intel")
             echo "GPU Type: Intel"
             gpu_utilization=$(get_gpu_utilization_intel)
-            gpu_temperature=$(get_gpu_temperature_intel)
+            gpu_temperature=$cpu_temperature
             ;;
         "unknown")
             echo "GPU Type: Unknown"
             exit 1
             ;;
     esac
-    #echo "GPU Utilization: $gpu_utilization"
-    #echo "GPU Temperature: $gpu_temperature"
+    echo "GPU Utilization:"
+    echo "$gpu_utilization"
+    echo "GPU Temperature: $gpu_temperature"
     sleep 1
 
