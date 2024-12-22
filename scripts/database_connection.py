@@ -130,8 +130,65 @@ class database_connection:
                 'five_min': row[15]
             }
         else:
-            raise ValueError("Unsupported operating system type")
+            self.cursor.execute(query)
+        
+        rows = self.cursor.fetchall()
+        columns = [column[0] for column in self.cursor.description]
+        return [dict(zip(columns, row)) for row in rows]
+    
+    def retrieve_latest_metrics(self, os_type):
+        # Determine the correct table based on os_type
+        table_name = "system_metrics" if os_type == "Linux" else "mac_metrics"
+        
+        # Prepare and execute the SQL query to get the latest metrics
+        query = f"SELECT * FROM {table_name} ORDER BY timestamp DESC LIMIT 1"
+        
+        print(f"Executing query: {query}")  # Debug print
+        self.cursor.execute(query)
+        row = self.cursor.fetchone()
 
+        if not row:
+            return None  # No metrics found
+
+        print(f"Retrieved row: {row}")  # Debug print
+
+        # Create a dictionary for metrics based on OS type
+        if os_type == "Linux":
+            return {
+                'cpu_utilization': row[2],
+                'cpu_temperature': row[3],
+                'total_ram': row[4],
+                'free_ram': row[5],
+                'utilized_ram': row[6],
+                'total_disk_space': row[7],
+                'used_disk_space': row[8],
+                'available_disk_space': row[9],
+                'ipv4_address': row[10],
+                'ipv6_address': row[11],
+                'sent': row[12],
+                'received': row[13],
+                'startup_time': row[14],
+                'average_process_waiting_time': row[15]
+            }
+        elif os_type == "Darwin":  # macOS
+            return {
+                'total_ram': row[2],
+                'used_ram': row[3],
+                'free_ram': row[4],
+                'average_cpu_utilization': row[5],
+                'gpu_active_frequency': row[6],
+                'gpu_active_residency': row[7],
+                'gpu_power_consumption': row[8],
+                'disk_usage': row[9],
+                'temperature': row[10],
+                'percentage_used': row[11],
+                'ping': row[12],
+                'download': row[13],
+                'upload': row[14],
+                'five_min': row[15]
+            }
+        else:
+            raise ValueError("Unsupported operating system type")
 
     # def retrieve_linux_metrics(self, limit=None):
     #     query = "SELECT * FROM system_metrics"

@@ -2,7 +2,8 @@ import platform
 from flask import Flask, render_template
 from database_connection import database_connection
 
-app = Flask(__name__)
+# Initialize the Flask app with template_folder argument
+app = Flask(__name__, template_folder='../templates')
 
 @app.route('/')
 def report():
@@ -11,9 +12,12 @@ def report():
         latest_metrics = connection.retrieve_latest_metrics(os_type)
     
     if latest_metrics is None:
-        return render_template('../templates/system_report.html', metrics=None)  # Handle no data case
+        # Handle no data case
+        return render_template('system_report.html', metrics=None)
 
-    return render_template('../templates/system_report.html', metrics=latest_metrics)
+    # Pass the retrieved metrics to the template
+    return render_template('system_report.html', metrics=latest_metrics)
 
 if __name__ == '__main__':
+    print(f"Template folder: {app.template_folder}")
     app.run(debug=True)

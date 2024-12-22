@@ -130,7 +130,7 @@ if __name__=="__main__":
                     connection.store_linux_metrics(metrics)
                     results = connection.retrieve_metrics(1)
                 
-            # plot_cpu_utilization(results)
+            plot_cpu_utilization(results)
             time.sleep(5)
             #print(results)
     except KeyboardInterrupt:

@@ -1,4 +1,5 @@
 import pandas as pd
+from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.animation import FuncAnimation
@@ -15,6 +16,8 @@ def plot_cpu_utilization(data, os_type):
     else:
         raise ValueError("Unsupported operating system")
 
+    timestamps = [pd.to_datetime(ts) for ts in timestamps]
+    
     fig, ax = plt.subplots()
     ax.set_title('CPU Utilization Over Time')
     ax.set_xlabel('Seconds')
@@ -37,9 +40,9 @@ def plot_cpu_utilization(data, os_type):
                 timestamps = [pd.to_datetime(entry['timestamp']) for entry in results]
                 cpu_utilizations = [float(entry['cpu_utilization'].rstrip('%')) for entry in results]
 
-            line.set_data(timestamps, cpu_utilizations)
-            ax.relim()
-            ax.autoscale_view()
+                line.set_data(timestamps, cpu_utilizations)
+                ax.relim()
+                ax.autoscale_view()
 
     ani = FuncAnimation(fig, update, interval=5000)  # Update every 5 seconds
     plt.tight_layout()
