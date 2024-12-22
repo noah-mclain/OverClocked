@@ -1,0 +1,68 @@
+/* Import Montserrat font */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap');
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #121212; /* Dark background */
+    color: #E0E0E0; /* Light gray text for better readability */
+    margin: 0;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    padding: 20px;
+    background-color: #1F1F1F; /* Slightly lighter dark background for header */
+    color: #ffffff; /* White text for contrast */
+    border-radius: 8px 8px 0 0; /* Rounded top corners */
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.5em;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    background-color: #1A1A1A; /* Dark background for the container */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3); /* Slightly stronger shadow for depth */
+}
+
+.metric {
+    margin-bottom: 20px;
+}
+
+.metric h2 {
+    font-size: 1.6em;
+    color: #B0B0B0; /* Soft light gray for the metric headings */
+}
+
+.metric p {
+    font-size: 1.2em;
+    color: #BDBDBD; /* Softer text color for metric values */
+    margin-top: 5px;
+}
+
+footer {
+    text-align: center;
+    padding: 10px;
+    background-color: #1F1F1F; /* Matching header background */
+    color: #A1A1A1; /* Lighter gray text for footer */
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    border-top: 1px solid #333; /* Subtle border on top of footer */
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+    .metric h2, .metric p {
+        font-size: 1em;
+    }
+}
