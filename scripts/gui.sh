@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#hellooooo
 request_admin_privileges() {
     if command -v fprintd-verify > /dev/null; then
         if zenity --question --text="Biometric authentication available. Do you want to use it?" --ok-label="Use Biometrics" --cancel-label="Enter Password" --width=400 --height=200; then
