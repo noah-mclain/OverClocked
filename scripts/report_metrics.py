@@ -56,4 +56,4 @@ def download_markdown():
 
 if __name__ == '__main__':
     print(f"Template folder: {app.template_folder}")
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
