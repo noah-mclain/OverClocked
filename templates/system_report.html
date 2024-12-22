@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Metrics Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #000000;
+            color: white;
+        }
+        h1 {
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: rgb(0, 0, 0);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }l
+        .metric {
+            margin-bottom: 20px;
+        }
+        .metric h2 {
+            font-size: 1.5em;
+            color: #333;
+        }
+        .metric p {
+            font-size: 1.2em;
+            color: #555;
+        }
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: rgb(244, 228, 255);
+            color: rgb(0, 0, 0);
+            position: relative;
+            bottom: 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>System Metrics Report</h1>
+    <p>Generated on {{ metrics['timestamp'] }}</p> <!-- Assuming you have a timestamp in your metrics -->
+</header>
+
+<div class="container">
+    {% if metrics %}
+        
+        <div class="metric">
+            <h2>CPU Utilization</h2>
+            <p>{{ metrics.get('cpu_utilization', 'N/A') }} %</p>
+        </div>
+
+        <div class="metric">
+            <h2>CPU Temperature</h2>
+            <p>{{ metrics.get('cpu_temperature', 'N/A') }} °C</p>
+        </div>
+
+        <div class="metric">
+            <h2>Total RAM</h2>
+            <p>{{ metrics.get('total_ram', 'N/A') }} GB</p>
+        </div>
+
+        <div class="metric">
+            <h2>Used RAM</h2>
+            <p>{{ metrics.get('used_ram', 'N/A') }} GB</p>
+        </div>
+
+        <div class="metric">
+            <h2>Free RAM</h2>
+            <p>{{ metrics.get('free_ram', 'N/A') }} GB</p>
+        </div>
+
+        <div class="metric">
+            <h2>Disk Space Used</h2>
+            <p>{{ metrics.get('used_disk_space', 'N/A') }} GB</p>
+        </div>
+
+        <div class="metric">
+            <h2>Total Disk Space</h2>
+            <p>{{ metrics.get('total_disk_space', 'N/A') }} GB</p>
+        </div>
+
+        <div class="metric">
+            <h2>Available Disk Space</h2>
+            <p>{{ metrics.get('available_disk_space', 'N/A') }} GB</p>
+        </div>
+
+        <div class="metric">
+            <h2>IPv4 Address</h2>
+            <p>{{ metrics.get('ipv4_address', 'N/A') }}</p>
+        </div>
+
+        <div class="metric">
+            <h2>IPv6 Address</h2>
+            <p>{{ metrics.get('ipv6_address', 'N/A') }}</p>
+        </div>
+
+        <div class="metric">
+            <h2>Network Sent</h2>
+            <p>{{ metrics.get('sent', 'N/A') }} MB</p>
+        </div>
+
+        <div class="metric">
+            <h2>Network Received</h2>
+            <p>{{ metrics.get('received', 'N/A') }} MB</p>
+        </div>
+
+        <div class="metric">
+            <h2>Startup Time</h2>
+            <p>{{ metrics.get('startup_time', 'N/A') }}</p>
+        </div>
+
+        <div class="metric">
+            <h2>Average Process Waiting Time</h2>
+            <p>{{ metrics.get('average_process_waiting_time', 'N/A') }} ms</p>
+        </div>
+
+        <!-- macOS specific metrics -->
+        
+        {% if metrics['os_type'] == 'Darwin' %}
+        
+          <!-- GPU Metrics -->
+          <div class="metric">
+              <h2>GPU Active Frequency</h2>
+              <p>{{ metrics.get('gpu_active_frequency', 'N/A') }} MHz</p>
+          </div>
+
+          <div class="metric">
+              <h2>GPU Active Residency</h2>
+              <p>{{ metrics.get('gpu_active_residency', 'N/A') }}</p>
+          </div>
+
+          <div class="metric">
+              <h2>GPU Power Consumption</h2>
+              <p>{{ metrics.get('gpu_power_consumption', 'N/A') }} W</p>
+          </div>
+
+          <!-- Network Metrics -->
+          <div class="metric">
+              <h2>Ping Time</h2>
+              <p>{{ metrics.get('ping', 'N/A') }} ms</p>
+          </div>
+
+          <!-- Internet Speed -->
+          <div class="metric">
+              <h2>Download Speed</h2>
+              <p>{{ metrics.get('download', 'N/A') }} Mbps</p>
+          </div>
+
+          <!-- Upload Speed -->
+          <div class="metric">
+              <h2>Upload Speed</h2>
+              <p>{{ metrics.get('upload', 'N/A') }} Mbps</p>
+          </div>
+
+          <!-- Load Average -->
+          <div class="metric">
+              <h2>5-Minute Load Average</h2>
+              <p>{{ metrics.get('five_min', 'N/A') }}</p>
+          </div>
+
+      {% endif %}
+
+    {% else %}
+        <!-- Handle case where no data is available -->
+        <p>No metrics available for this operating system.</p>
+    {% endif %}
+    
+</div>
+
+<footer>
+    <p>&copy; 2024 System Metrics Report</p>
+</footer>
+
+</body>
+</html>

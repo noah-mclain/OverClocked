@@ -1,5 +1,17 @@
 #!/bin/bash
-
+#alert
+alert_call(){
+    cpu_temperature=$(get_cpu_test_temperature)
+    ram_percentage=$(get_free_ram_percentage)
+    temp_threshold=60
+    ram_threshold=10
+    if [[ $cpu_temperature =~ ^[0-9]+$ ]] && (( cpu_temperature > temp_threshold )); then
+        notify-send "High CPU Temperature" "Current temperature: $cpu_temperature°C"
+    fi
+    if (( $(echo "$ram_percentage < $ram_threshold" | bc -l) )); then
+        notify-send "Low Free RAM" "Current free RAM: $ram_percentage%"
+    fi
+}
 #RAM functions
 get_total_ram() {
     free -h | grep Mem | awk '{print $2}'
@@ -16,6 +28,7 @@ get_used_ram_percentage(){
     utilized_percentage=$(echo "scale=2; $used_ram / $total_ram *100" |bc)
     echo "$utilized_percentage"
 }
+
 #CPU functions
 get_cpu_model_name(){
     lscpu | grep 'Model name' | sed -nr 's/.*:\s*(.*) @ .*/\1/p'
@@ -29,6 +42,9 @@ get_cpu_temperature() {
     else
         echo "sensors command not found, install lm-sensors if needed."
     fi
+}
+get_cpu_test_temperature() {
+    cat /sys/class/thermal/thermal_zone0/temp | awk '{print $1/1000}'  # Get CPU temperature in °C
 }
 #GPU functions
 get_gpu_model_name(){
@@ -149,6 +165,7 @@ get_ipv6_address() {
 }
 #Report
 check_smart_health
+alert_call
 boot_time=$(get_total_boot_time)
 ipv4=$(get_ipv4_address)
 ipv6=$(get_ipv6_address)

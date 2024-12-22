@@ -165,7 +165,7 @@ show_cpu_metrics(){
     echo "$cpu"
     echo "$cpu_utilization"
     echo "$cpu_temperature"
-    python3 grapher.py "cpu" &   
+    gnome-terminal -- python3 grapher.py "cpu" &   
 }
 while true; do
     ACTION=$(zenity --list \
