@@ -1,21 +1,4 @@
 #!/bin/bash
-# detect_os() {
-#     case "$(uname)" in
-#         Darwin)
-#             echo "macOS"
-#             ;;
-#         Linux)
-#             echo "Linux"
-#             ;;
-#         *)
-#             echo "Unsupported OS"
-#             exit 1
-#             ;;
-#     esac
-# }
-
-# os=$(detect_os)
-# echo "DETECTED: $os"
 
 request_admin_privileges() {
     if command -v fprintd-verify > /dev/null; then
@@ -67,12 +50,12 @@ collect_metrics() {
         while \$collecting_metrics; do
             echo 'Running metrics collection for OS: $OS_NAME'  # Debugging line
             if [ '$OS_NAME' == 'Darwin' ]; then
-                metrics_output=\$(./macos/collect_macos_metrics.sh) || {
+                metrics_output=\$(/app/macos/collect_macos_metrics.sh) || {
                     zenity --error --text='Error: Failed to collect macOS metrics.' --width=400 --height=200
                     exit 1
                 }
             elif [ '$OS_NAME' == 'Linux' ]; then 
-                metrics_output=\$(./linux/collect_linux_metrics.sh) || {
+                metrics_output=\$(/app/linux/collect_linux_metrics.sh) || {
                     zenity --error --text='Error: Failed to collect Linux metrics.' --width=400 --height=200
                     exit 1
                 }
