@@ -9,7 +9,7 @@ from markdownify import markdownify as md
 logging.basicConfig(level=logging.INFO)
 
 # Initialize the Flask app with template_folder argument
-app = Flask(__name__, template_folder='../templates', static_folder='../static')
+app = Flask(__name__, template_folder='../app/templates', static_folder='../app/static')
 
 @app.route('/')
 def report():
@@ -19,18 +19,18 @@ def report():
             latest_metrics = connection.retrieve_latest_metrics(os_type)
     except Exception as e:
         logging.error(f"Error retrieving metrics: {e}")
-        return render_template('system_report.html', metrics=None)
+        return render_template('scripts/system_report.html', metrics=None)
 
     if latest_metrics is None:
-        return render_template('system_report.html', metrics=None)
+        return render_template('scripts/system_report.html', metrics=None)
 
     return generate_report(os_type, latest_metrics)
 
 def generate_report(os_type, metrics):
     if os_type == "Linux":
-        return render_template('linux_system_report.html', metrics=metrics)
+        return render_template('templates/linux_system_report.html', metrics=metrics)
     elif os_type == "Darwin":  # macOS
-        return render_template('macos_system_report.html', metrics=metrics)
+        return render_template('templates/macos_system_report.html', metrics=metrics)
     else:
         return render_template('unsupported_os.html', metrics=None)  # Handle unsupported OS
 

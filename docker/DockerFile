@@ -1,36 +1,28 @@
-# Use an official Python runtime as a parent image
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC
 
-# Set the working directory
-WORKDIR /app
-
-# Copy scripts, config, and requirements.txt into the container
-COPY ../scripts /app/scripts
-COPY ../config/config.yaml /app/config/config.yaml
-COPY ../docs/requirements.txt /app/requirements.txt
-
 # Install necessary packages and Python dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+    apt-get install -y --no-install-recommends --fix-missing build-essential \
     lm-sensors \
     smartmontools \
     ifstat \
     sudo \
     sysstat \
     iproute2 \
-    pciutils
-
-RUN apt-get install -y bc \
+    pciutils \
+    systemd \
+    bc \
     curl \
+    gnome-terminal \
     zenity \
     mesa-utils \
+    libnotify-bin \
+    radeontop \
     libgl1-mesa-glx \
-    libgl1-mesa-dri
-
-RUN apt-get install -y --fix-missing build-essential \
+    libgl1-mesa-dri \
     libssl-dev \
     libegl1 \
     libgl1 \
@@ -41,13 +33,34 @@ RUN apt-get install -y --fix-missing build-essential \
     python3-venv && \
     rm -rf /var/lib/apt/lists/*
 
-RUN yes "" | sensors-detect || true
+
+RUN yes "" | sudo sensors-detect || true
+
+ARG HOST_OS
+
+# Set OS_NAME based on HOST_OS passed from environment variables
+ENV OS_NAME=$HOST_OS
+
+# Set the working directory
+WORKDIR /app
+
+# Copy scripts, config, and requirements.txt into the container
+COPY docker/entrypoint.sh /app/entrypoint.sh  
+COPY scripts /app/scripts                      
+COPY config/config.yaml /app/config/config.yaml  
+COPY docs/requirements.txt /app/requirements.txt  
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
+# Make entrypoint script executable
+RUN chmod +x /app/entrypoint.sh
+
 # Expose port 5001 for the application (adjust if necessary)
 EXPOSE 5001
 
-# Command to run when starting the container
+# Set entry point
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Command to run when starting the container (if needed)
 CMD ["bash", "scripts/gui.sh"]

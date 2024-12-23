@@ -1,17 +1,17 @@
 #!/bin/bash
 #alert
-alert_call(){
-    cpu_temperature=$(get_cpu_test_temperature)
-    ram_percentage=$(get_free_ram_percentage)
-    temp_threshold=60
-    ram_threshold=10
-    if [[ $cpu_temperature =~ ^[0-9]+$ ]] && (( cpu_temperature > temp_threshold )); then
-        notify-send "High CPU Temperature" "Current temperature: $cpu_temperature°C"
-    fi
-    if (( $(echo "$ram_percentage < $ram_threshold" | bc -l) )); then
-        notify-send "Low Free RAM" "Current free RAM: $ram_percentage%"
-    fi
-}
+# alert_call(){
+#     cpu_temperature=$(get_cpu_test_temperature)
+#     ram_percentage=$(get_free_ram_percentage)
+#     temp_threshold=60
+#     ram_threshold=10
+#     if [[ $cpu_temperature =~ ^[0-9]+$ ]] && (( cpu_temperature > temp_threshold )); then
+#         notify-send "High CPU Temperature" "Current temperature: $cpu_temperature°C"
+#     fi
+#     if (( $(echo "$ram_percentage < $ram_threshold" | bc -l) )); then
+#         notify-send "Low Free RAM" "Current free RAM: $ram_percentage%"
+#     fi
+# }
 #RAM functions
 get_total_ram() {
     free -h | grep Mem | awk '{print $2}'
@@ -184,7 +184,7 @@ get_ipv6_address() {
 }
 #Report
 check_smart_health
-alert_call
+# alert_call
 boot_time=$(get_total_boot_time)
 ipv4=$(get_ipv4_address)
 ipv6=$(get_ipv6_address)

@@ -1,16 +1,21 @@
 services:
   app:
     build:
-      context: ..  
-      dockerfile: docker/Dockerfile 
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - HOST_OS=${HOST_OS:-Linux}
+
     privileged: true
     ports:
-      - "5001:5001"  # Map host port 5001 to container port 5001
+      - "5001:5001" # Map host port 5001 to container port 5001
     volumes:
-      - ../:/app  # Mount the entire project directory for easier access to scripts and configs
+      - ../:/main_app # Mount the entire project directory for easier access to scripts and configs
+      - /tmp/.X11-unix:/tmp/.X11-unix
     environment:
+      # HOST_OS: ${HOST_OS}
       DATABASE_URL: "sqlite:///app/data/system_metrics.db"
-      DISPLAY: "host.docker.internal:0" 
+      DISPLAY: "host.docker.internal:0"
 
 networks:
   OverClockedNetwork:

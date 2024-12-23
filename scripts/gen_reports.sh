@@ -25,7 +25,7 @@ fi
 
 HTML_FILE="$1"
 MARKDOWN_REPORT="reports/system_report.md"
-HTML_REPORT="system_report.html"
+HTML_REPORT="scripts/system_report.html"
 
 # Check if the provided HTML file exists
 if [[ ! -f $HTML_FILE ]]; then
