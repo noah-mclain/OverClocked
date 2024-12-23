@@ -67,12 +67,12 @@ collect_metrics() {
         while \$collecting_metrics; do
             echo 'Running metrics collection for OS: $OS_NAME'  # Debugging line
             if [ '$OS_NAME' == 'Darwin' ]; then
-                metrics_output=\$(./scripts/collect_macos_metrics.sh) || {
+                metrics_output=\$(./macos/collect_macos_metrics.sh) || {
                     zenity --error --text='Error: Failed to collect macOS metrics.' --width=400 --height=200
                     exit 1
                 }
             elif [ '$OS_NAME' == 'Linux' ]; then 
-                metrics_output=\$(./scripts/collect_linux_metrics.sh) || {
+                metrics_output=\$(./linux/collect_linux_metrics.sh) || {
                     zenity --error --text='Error: Failed to collect Linux metrics.' --width=400 --height=200
                     exit 1
                 }

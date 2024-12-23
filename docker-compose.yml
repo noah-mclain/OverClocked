@@ -1,0 +1,42 @@
+services:
+  linux_app:
+    build:
+      context: .
+      dockerfile: linux/docker/Dockerfile  
+      args:
+        HOST_OS: ${HOST_OS}
+    platform: linux/amd64
+    stdin_open: true
+    tty: true   
+    privileged: true
+    ports:
+      - "5001:5001"
+    networks:
+      - OverClockedNetwork
+    volumes:
+      - ../:/main_app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DATABASE_URL: "sqlite:///app/data/system_metrics.db"
+      DISPLAY: "host.docker.internal:0"
+
+  macos_app:
+    image: sickcodes/docker-osx:latest
+    container_name: macos_container
+    privileged: true
+    ports:
+      - "50922:10022"
+    networks:
+      - OverClockedNetwork
+    volumes:
+      - ../:/main_app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      DISPLAY: "host.docker.internal:0"
+    platform: linux/amd64
+
+networks:
+  OverClockedNetwork:
+    driver: bridge

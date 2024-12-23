@@ -1,15 +1,12 @@
 database:
-  host: "db"  # Hostname for the MySQL database service defined in Docker Compose
-  user: "user"  # MySQL username
-  password: "userpassword"  # MySQL password
-  name: "metrics_db"  # Name of the database to connect to
+  name: "metrics_db"  # Name of the SQLite database file (without .db extension)
 
 metrics:
   log_interval: 300  # Interval to log metrics in seconds
-  output_format: "csv"  # Options: csv or database
+  output_format: "csv"  # Output format for metrics (options: csv or database)
 
 gui:
-  port: 8080  # Port on which the GUI will run
+  port: 5001  # Port on which the GUI will run
   theme: "dark"  # Theme for the GUI (light/dark)
 
 logging:

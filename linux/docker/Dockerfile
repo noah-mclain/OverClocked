@@ -30,11 +30,14 @@ RUN apt-get update && \
     x11-apps \
     python3 \
     python3-pip \
-    python3-venv && \
+    python3-venv \ 
+    docker.io && \
     rm -rf /var/lib/apt/lists/*
 
 
-RUN yes "" | sudo sensors-detect || true
+
+# Run sensors-detect (no need for sudo in a Docker container)
+RUN yes "" | sensors-detect || true
 
 ARG HOST_OS
 
@@ -44,17 +47,23 @@ ENV OS_NAME=$HOST_OS
 # Set the working directory
 WORKDIR /app
 
+# Create logs directory
+RUN mkdir -p /app/logs
+
 # Copy scripts, config, and requirements.txt into the container
-COPY docker/entrypoint.sh /app/entrypoint.sh  
-COPY scripts /app/scripts                      
-COPY config/config.yaml /app/config/config.yaml  
-COPY docs/requirements.txt /app/requirements.txt  
+COPY ./docker/entrypoint.sh /app/entrypoint.sh  
+COPY ./scripts /app/scripts                      
+COPY ./linux/collect_linux_metrics.sh /app/linux/collect_linux_metrics.sh  
+COPY ./macos/collect_macos_metrics.sh /app/macos/collect_macos_metrics.sh
+COPY ./config/config.yaml /app/config/config.yaml  
+COPY ./docs/requirements.txt /app/requirements.txt  
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Make entrypoint script executable
 RUN chmod +x /app/entrypoint.sh
+RUN chmod +x /app/macos/collect_macos_metrics.sh
 
 # Expose port 5001 for the application (adjust if necessary)
 EXPOSE 5001
