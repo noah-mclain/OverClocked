@@ -1,14 +1,20 @@
-OverClocked
+Here’s the corrected markdown with consistent formatting:
 
-OverClocked is a comprehensive system monitoring and reporting tool designed to collect, process, and visualize system metrics. The project includes customizable scripts, reports, and templates tailored for different operating systems.
+# OverClocked
 
-Features
-	•	Data Collection: Scripts to gather system metrics (CPU, memory, GPU, etc.) for Linux, macOS, and Windows.
-	•	Visualization: Tools to generate live graphs and detailed HTML reports.
-	•	Automation: Bash scripts for automated metric collection and report generation.
-	•	Database Integration: Stores metrics in a SQLite database for persistent monitoring.
+**OverClocked** is a comprehensive system monitoring and reporting tool designed to collect, process, and visualize system metrics. The project includes customizable scripts, reports, and templates tailored for different operating systems.
 
-Directory Structure
+---
+
+## **Features**
+- **Data Collection**: Scripts to gather system metrics (CPU, memory, GPU, etc.) for Linux, macOS, and Windows.  
+- **Visualization**: Tools to generate live graphs and detailed HTML reports.  
+- **Automation**: Bash scripts for automated metric collection and report generation.  
+- **Database Integration**: Stores metrics in a SQLite database for persistent monitoring.  
+
+---
+
+## **Directory Structure**
 
 OverClocked/
 ├── scripts/    # Core scripts for data collection, graph generation, and reporting.
@@ -16,60 +22,66 @@ OverClocked/
 ├── static/     # CSS files for report styling.
 └── reports/    # Pre-generated system reports.
 
-Requirements
-	•	Python: Version 3.13+
-	•	SQLite
-	•	Bash: For automation scripts
+---
 
-Setup
-	1.	Clone the repository:
+## **Requirements**
+- **Python**: Version 3.13+  
+- **SQLite**  
+- **Bash**: For automation scripts  
 
-git clone https://github.com/username/OverClocked.git
-cd OverClocked
+---
 
+## **Setup**
 
-	2.	Install dependencies:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/username/OverClocked.git
+   cd OverClocked
 
-pip install -r requirements.txt
+2. **Install Dependencies:**
+			```bash
+			pip install -r requirements.txt
 
+3.	**Set up the environment:**
+			```bash
+			source .env/bin/activate
 
-	3.	Set up the environment:
+	4.	**Configure the scripts in the scripts/ directory for your operating system.**
 
-source .env/bin/activate
+## **Usage**
 
-
-	4.	Configure the scripts in the scripts/ directory for your operating system.
-
-Usage
-
-Collect Metrics
+**Collect Metrics**
 
 Run the appropriate script based on your operating system:
 	•	Linux:
-
-bash scripts/collect_linux_metrics.sh
-
+			```bash
+			scripts/collect_linux_metrics.sh
 
 	•	macOS:
+			```bash
+		 scripts/collect_macos_metrics.sh
 
-bash scripts/collect_macos_metrics.sh
 
 
+## **Generate Reports**
 
-Generate Reports
+**Generate detailed system reports:**
 
-python3 scripts/report_metrics.py
+			```bash
+			python3 scripts/report_metrics.py
 
-Visualize Data
+## **Visualize Data**
 
-Run the live graphing tool:
+Run the live graphing tool to visualize metrics in real-time:
 
-python3 scripts/live_graph.py
+			```bash
+			python3 scripts/live_graph.py
 
-Contributing
+## **Contributing**
 
-Feel free to submit issues and pull requests to help improve this project. Contributions are welcome and appreciated!
+Contributions are welcome! Feel free to submit issues and pull requests to improve this project.
 
-License
+## **License**
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
+
