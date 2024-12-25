@@ -13,11 +13,11 @@ def run_script(os_type):
     try:
         print("Entered try-catch!")
         if os_type == "Linux":
-            result = subprocess.run(["bash", "./collect_linux_metrics.sh"],
+            result = subprocess.run(["bash", "./linux/collect_linux_metrics.sh"],
                                     capture_output=True,
                                     text=True)
         elif os_type == "Darwin":
-            result = subprocess.run(["bash", "./collect_macos_metrics.sh"],
+            result = subprocess.run(["bash", "./macos/collect_macos_metrics.sh"],
                                     capture_output=True,
                                     text=True)
 

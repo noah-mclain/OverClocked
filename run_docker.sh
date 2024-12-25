@@ -1,20 +1,24 @@
 #!/bin/bash
 
 # Determine the host OS
-if [[ "$(uname)" == "Darwin" ]]; then
-    export HOST_OS="Darwin"
-elif [[ "$(uname)" == "Linux" ]]; then
-    export HOST_OS="Linux"
+HOST_OS=$(uname)
+
+# Check if HOST_OS is set correctly
+if [[ "$HOST_OS" == "Darwin" || "$HOST_OS" == "Linux" ]]; then
+    echo "Detected OS: $HOST_OS"
 else
-    echo "Unsupported OS: $(uname)"
+    echo "Unsupported OS: $HOST_OS"
     exit 1
 fi
 
-# Run Docker Compose with the HOST_OS argument
-echo "Starting Docker Compose with HOST_OS=${HOST_OS}..."
-if ! HOST_OS=${HOST_OS} docker compose -f ./docker-compose.yml up --build --force-recreate; then
+# Set ENTRYPOINT_DIR (same for both OS types in this case)
+ENTRYPOINT_DIR="/app"
+
+# Start Docker Compose with HOST_OS and ENTRYPOINT_DIR as environment variables
+echo "Starting Docker Compose with HOST_OS=${HOST_OS} and ENTRYPOINT_DIR=${ENTRYPOINT_DIR}..."
+if ! HOST_OS=${HOST_OS} ENTRYPOINT_DIR=${ENTRYPOINT_DIR} docker compose -f ./docker-compose.yml up --build --force-recreate; then
     echo "Docker Compose failed."
-    exit 1
+    exit 1 
 fi
 
 echo "Docker Compose finished successfully."

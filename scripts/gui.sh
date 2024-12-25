@@ -48,14 +48,15 @@ collect_metrics() {
     # Start a new shell with sudo privileges and call the appropriate metrics collection script based on OS detection.
     sudo bash -c "
         while \$collecting_metrics; do
-            echo 'Running metrics collection for OS: $OS_NAME'  # Debugging line
-            if [ '$OS_NAME' == 'Darwin' ]; then
-                metrics_output=\$(/app/macos/collect_macos_metrics.sh) || {
+            echo 'Running metrics collection for OS: $HOST_OS'  # Debugging line
+            if [ '$HOST_OS' == 'Darwin' ]; then
+                echo "collecting macos metrics"
+                metrics_output=\$(./macos/collect_macos_metrics.sh) || {
                     zenity --error --text='Error: Failed to collect macOS metrics.' --width=400 --height=200
                     exit 1
                 }
-            elif [ '$OS_NAME' == 'Linux' ]; then 
-                metrics_output=\$(/app/linux/collect_linux_metrics.sh) || {
+            elif [ '$HOST_OS' == 'Linux' ]; then 
+                metrics_output=\$(./linux/collect_linux_metrics.sh) || {
                     zenity --error --text='Error: Failed to collect Linux metrics.' --width=400 --height=200
                     exit 1
                 }
@@ -65,7 +66,7 @@ collect_metrics() {
             fi
             
             echo \"\$metrics_output\" > system_metrics.txt
-            python3 \"scripts/bash_to_csv.py\"
+            python3 \"/app/scripts/bash_to_csv.py\"
             sleep 1  # Add delay between collections
         done
     " <<< "$SUDO_PASSWORD"  # Pass the password to the sub-shell
@@ -96,17 +97,17 @@ if ! request_admin_privileges; then
     exit 1
 fi
 
-start_gui() {
-    ./scripts/gui.sh &
-}
+# start_gui() {
+#     ./scripts/gui.sh &
+# }
 
-start_gui
+# start_gui
 
 start_collecting_metrics
 
-INPUT_FILE="scripts/system_metrics.txt"
-MARKDOWN_REPORT="scripts/system_report.md"
-HTML_REPORT="scripts/systems_report.html"
+INPUT_FILE="/app/scripts/system_metrics.txt"
+MARKDOWN_REPORT="/app/scripts/system_report.md"
+HTML_REPORT="/app/scripts/systems_report.html"
 
 generate_reports() {
     if [[ ! -f $INPUT_FILE ]]; then
@@ -114,7 +115,7 @@ generate_reports() {
         return
     fi
 
-    if scripts/gen_reports.sh; then
+    if /app/scripts/gen_reports.sh; then
         zenity --info --text="Reports generated:\n- Markdown Report: ${MARKDOWN_REPORT}\n- HTML Report: ${HTML_REPORT}"
 
     else
@@ -135,27 +136,27 @@ show_metric_data() {
     esac
 }
 show_network_metrics(){
-    network_adapter=$(cat 'scripts/system_metrics.txt' | grep 'Network Adapter Model')
-    sent=$(cat 'scripts/system_metrics.txt' | grep 'Sent')
-    received=$(cat 'scripts/system_metrics.txt' | grep 'Received')
+    network_adapter=$(cat '/app/scripts/system_metrics.txt' | grep 'Network Adapter Model')
+    sent=$(cat '/app/scripts/system_metrics.txt' | grep 'Sent')
+    received=$(cat '/app/scripts/system_metrics.txt' | grep 'Received')
     echo "$network_adapter"
     echo "$sent kb/s"
     echo "$received kb/s" 
-    python3 scripts/grapher.py "network" & 
+    python3 /app/scripts/grapher.py "network" & 
 }
 show_load_metrics(){
-    startup_time=$(cat 'scripts/system_metrics.txt' | grep 'Startup time')
-    average_process_wait_time=$(cat 'scripts/system_metrics.txt' | grep 'Average process waiting time')
+    startup_time=$(cat '/app/scripts/system_metrics.txt' | grep 'Startup time')
+    average_process_wait_time=$(cat '/app/scripts/system_metrics.txt' | grep 'Average process waiting time')
     echo "$startup_time"
     echo "$average_process_wait_time"
 }
 show_overall_metrics(){
-    startup_time=$(cat 'scripts/system_metrics.txt' | grep 'Startup time')
-    average_process_wait_time=$(cat 'scripts/system_metrics.txt' | grep 'Average process waiting time')
-    total_ram=$(cat 'scripts/system_metrics.txt' | grep 'Total RAM')
-    cpu=$(cat 'scripts/system_metrics.txt' | grep 'CPU Model')
-    gpu=$(cat 'scripts/system_metrics.txt' | grep 'GPU:')
-    network_adapter=$(cat 'scripts/system_metrics.txt' | grep 'Network Adapter Model')
+    startup_time=$(cat '/app/scripts/system_metrics.txt' | grep 'Startup time')
+    average_process_wait_time=$(cat '/app/scripts/system_metrics.txt' | grep 'Average process waiting time')
+    total_ram=$(cat '/app/scripts/system_metrics.txt' | grep 'Total RAM')
+    cpu=$(cat '/app/scripts/system_metrics.txt' | grep 'CPU Model')
+    gpu=$(cat '/app/scripts/system_metrics.txt' | grep 'GPU:')
+    network_adapter=$(cat '/app/scripts/system_metrics.txt' | grep 'Network Adapter Model')
     echo "$cpu"
     echo "$total_ram"
     echo "$gpu"
@@ -164,39 +165,39 @@ show_overall_metrics(){
     echo "$average_process_wait_time"
 }
 show_disk_metrics(){
-    total_disk_space=$(cat 'scripts/system_metrics.txt' | grep 'Total Disk Space')
-    used_disk_space=$(cat 'scripts/system_metrics.txt' | grep 'Used Disk Space')
-    available_disk_space=$(cat 'scripts/system_metrics.txt' | grep 'Available Disk Space')
+    total_disk_space=$(cat '/app/scripts/system_metrics.txt' | grep 'Total Disk Space')
+    used_disk_space=$(cat '/app/scripts/system_metrics.txt' | grep 'Used Disk Space')
+    available_disk_space=$(cat '/app/scripts/system_metrics.txt' | grep 'Available Disk Space')
     echo "$total_disk_space"
     echo "$used_disk_space"
     echo "$available_disk_space"
 }
 show_memory_metrics(){
-    total_ram=$(cat 'scripts/system_metrics.txt' | grep -m 1 'Total RAM')
-    free_ram=$(cat 'scripts/system_metrics.txt' | grep 'Free RAM')
-    utilized_ram=$(cat 'scripts/system_metrics.txt' | grep 'Utilized RAM')
+    total_ram=$(cat '/app/scripts/system_metrics.txt' | grep -m 1 'Total RAM')
+    free_ram=$(cat '/app/scripts/system_metrics.txt' | grep 'Free RAM')
+    utilized_ram=$(cat '/app/scripts/system_metrics.txt' | grep 'Utilized RAM')
     echo "$total_ram"
     echo "$free_ram"
     echo "$utilized_ram"
-    gnome-terminal -- python3 scripts/grapher.py "ram" & 
+    gnome-terminal -- python3 /app/scripts/grapher.py "ram" & 
 }
 show_cpu_metrics(){
-    cpu=$(cat 'scripts/system_metrics.txt' | grep 'CPU Model')
+    cpu=$(cat '/app/scripts/system_metrics.txt' | grep 'CPU Model')
     #CPU Utilization: 31.08%
     #CPU Temperature: +51.0°C
-    cpu_utilization=$(cat 'scripts/system_metrics.txt' | grep 'CPU Utilization')
-    cpu_temperature=$(cat 'scripts/system_metrics.txt' | grep 'CPU Temperature')
+    cpu_utilization=$(cat '/app/scripts/system_metrics.txt' | grep 'CPU Utilization')
+    cpu_temperature=$(cat '/app/scripts/system_metrics.txt' | grep 'CPU Temperature')
     echo "$cpu"
     echo "$cpu_utilization"
     echo "$cpu_temperature"
-    gnome-terminal -- python3 scripts/grapher.py "cpu" &   
+    gnome-terminal -- python3 /app/scripts/grapher.py "cpu" &   
 }
 show_gpu_metrics(){
-    gpu=$(cat 'scripts/system_metrics.txt' | grep 'GPU:')
-    rcs=$(cat 'scripts/system_metrics.txt' | grep 'RCS')
-    bcs=$(cat 'scripts/system_metrics.txt' | grep 'BCS')
-    vcs=$(cat 'scripts/system_metrics.txt' | grep 'VCS')
-    temperature=$(cat 'scripts/system_metrics.txt' | grep 'GPU Temperature')
+    gpu=$(cat '/app/scripts/system_metrics.txt' | grep 'GPU:')
+    rcs=$(cat '/app/scripts/system_metrics.txt' | grep 'RCS')
+    bcs=$(cat '/app/scripts/system_metrics.txt' | grep 'BCS')
+    vcs=$(cat '/app/scripts/system_metrics.txt' | grep 'VCS')
+    temperature=$(cat '/app/scripts/system_metrics.txt' | grep 'GPU Temperature')
     echo "$gpu"
     echo "$rcs"
     echo "$bcs"

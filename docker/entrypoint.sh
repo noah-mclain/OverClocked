@@ -1,60 +1,17 @@
 #!/bin/bash
 
-# Entry point for the docker container
-export NO_AT_BRIDGE=1
+# Change to the appropriate working directory based on ENTRYPOINT_DIR (set by run_docker.sh)
+cd $ENTRYPOINT_DIR || { echo "Failed to change directory to $ENTRYPOINT_DIR"; exit 1; }
 
-start_gui() {
-    echo "Starting the GUI..."
-    ./scripts/gui.sh
-}
+# List contents of the docker directory for debugging
+echo "Contents of $ENTRYPOINT_DIR/docker:"
+ls -l ./docker  
 
-echo "Detected OS: $OS_NAME"
-
-# Start the GUI first
-start_gui &  # Run the GUI in the background
-
-# Wait for a moment to ensure the GUI is fully up (you may need to adjust this)
-sleep 5
-
-# Collect metrics based on the detected OS
-if [[ "$OS_NAME" == "Darwin" ]]; then
-    echo "Detected macOS environment"
-    
-    # Check if macos_container is running
-    if [ ! "$(docker ps -q -f name=macos_container)" ]; then
-        echo "Starting macOS container..."
-        docker run -d \
-            --name macos_container \
-            --device /dev/kvm \
-            -p 50922:10022 \
-            -v /tmp/.X11-unix:/tmp/.X11-unix \
-            -e DISPLAY="${DISPLAY:-host.docker.internal:0}" \
-            sickcodes/docker-osx:latest
-        
-        # Wait for a moment to ensure the container is fully up
-        sleep 10
-    fi
-
-    echo "Collecting macOS metrics..."
-    if ! docker exec macos_container /app/macos/collect_macos_metrics.sh; then
-        echo "Failed to collect macOS metrics."
-        exit 1
-    fi
-
-elif [[ "$OS_NAME" == "Linux" ]]; then
-    echo "Collecting Linux metrics..."
-    if ! ./linux/collect_linux_metrics.sh; then
-        echo "Failed to collect Linux metrics."
-        exit 1
-    fi
-
+# Execute gui.sh instead of calling entrypoint.sh again
+if [[ -f ./scripts/gui.sh ]]; then
+    echo "Starting GUI script..."
+    exec ./scripts/gui.sh
 else
-    echo "Unsupported OS Detected"
+    echo "gui.sh not found!"
     exit 1
 fi
-
-# Wait for the GUI process to finish (if applicable)
-wait  # This will wait for the background GUI process to complete
-
-# Execute any additional commands passed to the script
-exec "$@"

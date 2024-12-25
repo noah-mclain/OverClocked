@@ -19,18 +19,18 @@ def report():
             latest_metrics = connection.retrieve_latest_metrics(os_type)
     except Exception as e:
         logging.error(f"Error retrieving metrics: {e}")
-        return render_template('scripts/system_report.html', metrics=None)
+        return render_template('/app/scripts/system_report.html', metrics=None)
 
     if latest_metrics is None:
-        return render_template('scripts/system_report.html', metrics=None)
+        return render_template('/app/scripts/system_report.html', metrics=None)
 
     return generate_report(os_type, latest_metrics)
 
 def generate_report(os_type, metrics):
     if os_type == "Linux":
-        return render_template('templates/linux_system_report.html', metrics=metrics)
+        return render_template('/app/templates/linux_system_report.html', metrics=metrics)
     elif os_type == "Darwin":  # macOS
-        return render_template('templates/macos_system_report.html', metrics=metrics)
+        return render_template('/app/templates/macos_system_report.html', metrics=metrics)
     else:
         return render_template('unsupported_os.html', metrics=None)  # Handle unsupported OS
 
@@ -45,9 +45,9 @@ def download_markdown():
         return "Error retrieving metrics", 500
 
     if os_type == "Linux":
-        html_content = render_template('linux_system_report.html', metrics=latest_metrics)
+        html_content = render_template('/app/scripts/linux_system_report.html', metrics=latest_metrics)
     elif os_type == "Darwin":
-        html_content = render_template('macos_system_report.html', metrics=latest_metrics)
+        html_content = render_template('/app/scripts/macos_system_report.html', metrics=latest_metrics)
     else:
         return "Unsupported operating systems", 400
 
@@ -55,7 +55,7 @@ def download_markdown():
     markdown_content = md(html_content)
 
     # Save the Markdown content to a file
-    markdown_file_path = os.path.join('reports', 'system_report.md')
+    markdown_file_path = os.path.join('app', 'reports', 'system_report.md')
     with open(markdown_file_path, 'w') as f:
         f.write(markdown_content)
 

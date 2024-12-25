@@ -5,6 +5,7 @@ services:
       dockerfile: linux/docker/Dockerfile  
       args:
         HOST_OS: ${HOST_OS}
+        ENTRYPOINT_DIR: "/app"
     platform: linux/amd64
     stdin_open: true
     tty: true   
@@ -14,12 +15,19 @@ services:
     networks:
       - OverClockedNetwork
     volumes:
-      - ../:/main_app
+      - ../:/app
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
+      HOST_OS: ${HOST_OS}
       DATABASE_URL: "sqlite:///app/data/system_metrics.db"
       DISPLAY: "host.docker.internal:0"
+    working_dir: /app
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   macos_app:
     image: sickcodes/docker-osx:latest
@@ -30,13 +38,27 @@ services:
     networks:
       - OverClockedNetwork
     volumes:
-      - ../:/main_app
+      - ../:/app
       - /tmp/.X11-unix:/tmp/.X11-unix
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
+      HOST_OS: ${HOST_OS}
       DISPLAY: "host.docker.internal:0"
-    platform: linux/arm64
+      
+    platform: linux/amd64
+    working_dir: /app/OverClocked
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    build:
+      context: .
+      dockerfile: linux/docker/Dockerfile  
+      args:
+        HOST_OS: ${HOST_OS}
+        ENTRYPOINT_DIR: "/app"
 
 networks:
   OverClockedNetwork:
-    driver: bridge
+     driver: bridge 
